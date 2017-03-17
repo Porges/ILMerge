@@ -3,7 +3,7 @@
     "NUnit": "3.6.0" 
   },
   "frameworks": {
-    "net40": {}
+    "net452": {}
   },
   "runtimes": {
     "win": {}
