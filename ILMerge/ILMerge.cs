@@ -2,8 +2,8 @@ using System;
 using System.IO;
 using System.Compiler;
 using System.Collections;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using AssemblyResolving;
 
 namespace ILMerging {
   /// <summary>
@@ -17,12 +17,12 @@ namespace ILMerging {
     private Duplicator d = null;
 
     private string[] directories = null;
-    private ArrayList searchDirs = new ArrayList();
+    private List<string> searchDirs = new List<string>();
     private bool log = false;
     private string logFile = null;
     private Kind targetKind = Kind.SameAsPrimaryAssembly;
     private string outputFileName = null;
-    private ArrayList assemblyNames = null;
+    private List<string> assemblyNames = null;
     private bool keyfileSpecified = false;
     private string keyfile = null;
     private bool keyContainerSpecified = false;
@@ -33,7 +33,7 @@ namespace ILMerging {
     private bool shortB = false;
     private bool internalize = false;
     private string excludeFile = "";
-    private ArrayList exemptionList = null;
+    private List<Regex> exemptionList = null;
     private System.Version version = null;
     private string attributeFileName = null;
     private AssemblyNode attributeAssembly = null;
@@ -71,7 +71,7 @@ namespace ILMerging {
     /// each output assembly. The definitions are all identical and are not referenced
     /// from anywhere, so renaming this particular public type doesn't matter.
     /// </summary>
-    private Hashtable/*string -> bool*/ typesToAllowDuplicatesOf = new Hashtable();
+    private Dictionary<string, bool> typesToAllowDuplicatesOf = new Dictionary<string, bool>();
     /// <summary>
     /// If this is true, then all public types are allowed to have duplicates; the duplicates
     /// are just renamed.
@@ -79,9 +79,9 @@ namespace ILMerging {
     private bool allowAllDuplicates = false;
     private bool unionMerge = false;
 
-    private Hashtable typeList = new Hashtable();
-    private ArrayList memberList;
-    private ArrayList resourceList = new ArrayList();
+    private Dictionary<string, List<string>> typeList = new Dictionary<string, List<string>>();
+    private List<string> memberList;
+    private List<string> resourceList = new List<string>();
 
     private int fileAlignment = 512; // default in Writer
 
@@ -108,11 +108,11 @@ namespace ILMerging {
     #endregion
     #region Private Methods
     private class CloseAssemblies {
-      Hashtable visitedAssemblies = new Hashtable();
-      internal Hashtable assembliesToBeAdded = new Hashtable();
-      private Hashtable currentlyActiveAssemblies = new Hashtable();
-      AssemblyNodeList initialAssemblies = null;
-      internal CloseAssemblies(AssemblyNodeList assems) {
+      Dictionary<int, AssemblyNode> visitedAssemblies = new Dictionary<int, AssemblyNode>();
+      internal Dictionary<int, AssemblyNode> assembliesToBeAdded = new Dictionary<int, AssemblyNode>();
+      private Dictionary<int, AssemblyNode> currentlyActiveAssemblies = new Dictionary<int, AssemblyNode>();
+      List<AssemblyNode> initialAssemblies = null;
+      internal CloseAssemblies(List<AssemblyNode> assems) {
         initialAssemblies = assems;
         for (int i = 0, n = assems.Count; i < n; i++) {
           visitedAssemblies[assems[i].UniqueKey] = assems[i];
@@ -162,12 +162,12 @@ namespace ILMerging {
       assem.Name = outputAssemblyName;
       assem.Kind = kind;
       if (assem != null) assem.Version = new Version(0, 0, 0, 0);
-      assem.ModuleReferences = new ModuleReferenceList();
+      assem.ModuleReferences = new List<ModuleReference>();
       var doc = new System.Xml.XmlDocument();
       doc.XmlResolver = null;
       assem.Documentation = doc;
-      assem.AssemblyReferences = new AssemblyReferenceList();
-      TypeNodeList types = assem.Types = new TypeNodeList();
+      assem.AssemblyReferences = new List<AssemblyReference>();
+      List<TypeNode> types = assem.Types = new List<TypeNode>();
       hiddenClass = new Class(
         assem,
         null,
@@ -176,8 +176,8 @@ namespace ILMerging {
         Identifier.Empty,
         Identifier.For("<Module>"),
         null,
-        new InterfaceList(),
-        new MemberList(0));
+        new List<Interface>(),
+        new List<Member>(0));
       types.Add(hiddenClass);
       return assem;
     }
@@ -332,7 +332,7 @@ namespace ILMerging {
       AttributeNode assemblyComVisibleAttribute = null;
       if (thisAssemblyIsComVisible != targetAssemblyIsComVisible) {
         InstanceInitializer ctor = SystemTypes.ComVisibleAttribute.GetConstructor(SystemTypes.Boolean);
-        assemblyComVisibleAttribute = new AttributeNode(new MemberBinding(null, ctor), new ExpressionList(new Literal(thisAssemblyIsComVisible, SystemTypes.Boolean)));
+        assemblyComVisibleAttribute = new AttributeNode(new MemberBinding(null, ctor), new List<Expression>{new Literal(thisAssemblyIsComVisible, SystemTypes.Boolean)});
       }
       for (int i = 0, n = a.Attributes == null ? 0 : a.Attributes.Count; i < n; i++) {
         AttributeNode aNode = a.Attributes[i];
@@ -379,13 +379,13 @@ namespace ILMerging {
       // But only if option is explicitly set and if an attribute assembly is not being used.
       if (copyattrs && attributeAssembly == null) {
         #region Regular Attributes
-        AttributeList attrs = d.VisitAttributeList(a.Attributes);
+        List<AttributeNode> attrs = d.VisitAttributeList(a.Attributes);
         MergeAttributeLists(this.targetAssembly.Attributes, attrs, this.allowMultipleAssemblyLevelAttributes, this.keepFirstOfMultipleAssemblyLevelAttributes);
         #endregion
         #region Security Attributes
         // For security attributes, need to merge in the permission attributes within each
         // "bundle" keyed by the Action
-        SecurityAttributeList secAttrs = d.VisitSecurityAttributeList(a.SecurityAttributes);
+        List<SecurityAttribute> secAttrs = d.VisitSecurityAttributeList(a.SecurityAttributes);
         for (int i = 0, n = secAttrs.Count; i < n; i++) {
           SecurityAttribute secAttr = secAttrs[i];
           System.Security.Permissions.SecurityAction action = secAttr.Action;
@@ -401,8 +401,8 @@ namespace ILMerging {
           if (j == m) { // not found: this is a new action, so just add it
             targetAssembly.SecurityAttributes.Add(secAttr);
           } else { // need to walk the permission attributes inside of this security attribute
-            AttributeList existingList = targetAssembly.SecurityAttributes[j].PermissionAttributes;
-            AttributeList currentAssemblyList = secAttr.PermissionAttributes;
+            List<AttributeNode> existingList = targetAssembly.SecurityAttributes[j].PermissionAttributes;
+            List<AttributeNode> currentAssemblyList = secAttr.PermissionAttributes;
             MergeAttributeLists(existingList, currentAssemblyList, this.allowMultipleAssemblyLevelAttributes, this.keepFirstOfMultipleAssemblyLevelAttributes);
           }
         }
@@ -475,7 +475,7 @@ namespace ILMerging {
             t1.Name.Name == t2.Name.Name);
       }
 
-    private bool FuzzyEqual (ParameterList xs, ParameterList ys) {
+    private bool FuzzyEqual (List<Parameter> xs, List<Parameter> ys) {
       if (xs.Count != ys.Count) return false;
       for (int i = 0, n = xs.Count; i < n; i++) {
         if (!FuzzyEqual(xs[i].Type, ys[i].Type)) return false;
@@ -483,7 +483,7 @@ namespace ILMerging {
       return true;
     }
     private Member FuzzilyGetMatchingMember (TypeNode t, Member m) {
-      MemberList ml = t.GetMembersNamed(m.Name);
+      List<Member> ml = t.GetMembersNamed(m.Name);
       for (int i = 0, n = ml.Count; i < n; i++) {
         Member mem = ml[i];
         // type case statement would be *so* nice right now
@@ -533,7 +533,7 @@ namespace ILMerging {
       AttributeNode assemblyComVisibleAttribute = null;
       if (thisAssemblyIsComVisible != targetAssemblyIsComVisible) {
         InstanceInitializer ctor = SystemTypes.ComVisibleAttribute.GetConstructor(SystemTypes.Boolean);
-        assemblyComVisibleAttribute = new AttributeNode(new MemberBinding(null, ctor), new ExpressionList(new Literal(thisAssemblyIsComVisible, SystemTypes.Boolean)));
+        assemblyComVisibleAttribute = new AttributeNode(new MemberBinding(null, ctor), new List<Expression>{new Literal(thisAssemblyIsComVisible, SystemTypes.Boolean)});
       }
       for (int i = 0, n = a.Attributes == null ? 0 : a.Attributes.Count; i < n; i++) {
         AttributeNode aNode = a.Attributes[i];
@@ -563,7 +563,7 @@ namespace ILMerging {
         TypeNode currentType = a.Types[i];
         TypeNode targetType = targetAssembly.GetType(currentType.Namespace, currentType.Name);
         if (targetType != null) {
-          memberList = (ArrayList)typeList[currentType.DocumentationId.ToString()];
+          memberList = typeList[currentType.DocumentationId.ToString()];
           TypeNode savedTargetType = d.TargetType;
           d.TargetType = targetType;
           for (int j = 0, o = currentType.Members.Count; j < o; j++) {
@@ -579,7 +579,7 @@ namespace ILMerging {
           d.TargetType = savedTargetType;
         } else {
           if (d.TypesToBeDuplicated[currentType.UniqueKey] == null) {
-            d.FindTypesToBeDuplicated(new TypeNodeList(currentType));
+            d.FindTypesToBeDuplicated(new List<TypeNode> { currentType });
           }
 
           Node newType = d.Visit(currentType); // If something went wrong then it doesn't return a TypeNode
@@ -588,7 +588,7 @@ namespace ILMerging {
             this.AdjustAccessibilityAndPossiblyMarkWithComVisibleAttribute(newTypeNode, assemblyComVisibleAttribute); // recursively walks down into all nested types
             targetAssembly.Types.Add(newTypeNode);
 
-            memberList = new ArrayList();
+            memberList = new List<string>();
             for (int j = 0; j < currentType.Members.Count; j++) {
               memberList.Add(newTypeNode.Members[j].DocumentationId.ToString());
             }
@@ -602,13 +602,13 @@ namespace ILMerging {
       // But only if option is explicitly set and if an attribute assembly is not being used.
       if (copyattrs && attributeAssembly == null) {
         #region Regular Attributes
-        AttributeList attrs = d.VisitAttributeList(a.Attributes);
+        List<AttributeNode> attrs = d.VisitAttributeList(a.Attributes);
         MergeAttributeLists(this.targetAssembly.Attributes, attrs, this.allowMultipleAssemblyLevelAttributes, this.keepFirstOfMultipleAssemblyLevelAttributes);
         #endregion
         #region Security Attributes
         // For security attributes, need to merge in the permission attributes within each
         // "bundle" keyed by the Action
-        SecurityAttributeList secAttrs = d.VisitSecurityAttributeList(a.SecurityAttributes);
+        List<SecurityAttribute> secAttrs = d.VisitSecurityAttributeList(a.SecurityAttributes);
         for (int i = 0, n = secAttrs.Count; i < n; i++) {
           SecurityAttribute secAttr = secAttrs[i];
           System.Security.Permissions.SecurityAction action = secAttr.Action;
@@ -625,8 +625,8 @@ namespace ILMerging {
             targetAssembly.SecurityAttributes.Add(secAttr);
           }
           else { // need to walk the permission attributes inside of this security attribute
-            AttributeList existingList = targetAssembly.SecurityAttributes[j].PermissionAttributes;
-            AttributeList currentAssemblyList = secAttr.PermissionAttributes;
+            List<AttributeNode> existingList = targetAssembly.SecurityAttributes[j].PermissionAttributes;
+            List<AttributeNode> currentAssemblyList = secAttr.PermissionAttributes;
             MergeAttributeLists(existingList, currentAssemblyList, this.allowMultipleAssemblyLevelAttributes, this.keepFirstOfMultipleAssemblyLevelAttributes);
           }
         }
@@ -656,7 +656,7 @@ namespace ILMerging {
         TypeNode  targetType = targetAssembly.GetType(currentType.Namespace, currentType.Name);
         if (targetType == null) {
           if (d.TypesToBeDuplicated[currentType.UniqueKey] == null) {
-            d.FindTypesToBeDuplicated(new TypeNodeList(currentType));
+            d.FindTypesToBeDuplicated(new List<TypeNode> { currentType });
           }
         } else {
           d.DuplicateFor[currentType.UniqueKey] = targetType;
@@ -682,7 +682,7 @@ namespace ILMerging {
       //  }
       //}
     }
-    private void MergeAttributeLists(AttributeList targetList, AttributeList sourceList, bool allowMultiples, bool keepFirst)
+    private void MergeAttributeLists(List<AttributeNode> targetList, List<AttributeNode> sourceList, bool allowMultiples, bool keepFirst)
     {
       var targetIsExe = this.targetAssembly.Kind == ModuleKindFlags.ConsoleApplication || this.targetAssembly.Kind == ModuleKindFlags.WindowsApplication;
 
@@ -734,14 +734,14 @@ namespace ILMerging {
         }
       }
     }
-    private bool AttributeExistsInTarget(AttributeNode possiblyDuplicateAttr, AttributeList targetList){
+    private bool AttributeExistsInTarget(AttributeNode possiblyDuplicateAttr, List<AttributeNode> targetList){
       bool addAttribute = false;
       int counter = 0;
 
       while (counter < targetList.Count) {
         if (possiblyDuplicateAttr.Type == targetList[counter].Type) {
-          ArrayList exprList1 = new ArrayList();
-          ArrayList exprList2 = new ArrayList();
+          List<string> exprList1 = new List<string>();
+          List<string> exprList2 = new List<string>();
 
           if (possiblyDuplicateAttr.Expressions != null) {
             foreach (Expression expression in possiblyDuplicateAttr.Expressions) {
@@ -874,7 +874,7 @@ namespace ILMerging {
     /// <param name="args"></param>
     protected virtual bool ProcessCommandLineOptions(string[] args) {
       bool ok = true;
-      this.assemblyNames = new ArrayList(args.Length); // can't be more arguments than that
+      this.assemblyNames = new List<string>(args.Length); // can't be more arguments than that
       for (int i = 0, n = args.Length; i < n && ok; i++)  // stop processing if not okay
             {
         string arg = args[i];
@@ -1182,7 +1182,7 @@ namespace ILMerging {
     /// turn.
     /// The Types property of each one is passed to d's FindTypesToBeDuplicated
     /// method.</param>
-    protected virtual void ScanAssemblies(Duplicator d, AssemblyNodeList assems) {
+    protected virtual void ScanAssemblies(Duplicator d, List<AssemblyNode> assems) {
       for (int i = 0, n = assems.Count; i < n; i++) {
         AssemblyNode a = assems[i];
         d.FindTypesToBeDuplicated(a.Types);
@@ -1459,7 +1459,7 @@ namespace ILMerging {
     /// </summary>
     public void SetInputAssemblies(string[] assems) {
       if (assems != null && assems.Length > 0) {
-        assemblyNames = new ArrayList(assems.Length);
+        assemblyNames = new List<string>(assems.Length);
         foreach (string s in assems) {
           assemblyNames.Add(s);
         }
@@ -1776,7 +1776,7 @@ namespace ILMerging {
       #region If an exclusion file has been specified, read in each line as a regular expression
       if (excludeFile != null && excludeFile != "") {
         int i = 0;
-        exemptionList = new ArrayList();
+        exemptionList = new List<Regex>();
         try {
           // Create an instance of StreamReader to read from a file.
           // The using statement also closes the StreamReader.
@@ -1809,7 +1809,7 @@ namespace ILMerging {
       #region Check to see if there are any duplicate assembly names
       {
         if (!this.UnionMerge) {
-          Hashtable avoidNSquaredComputation = new Hashtable(assemblyNames.Count);
+          Dictionary<string, bool> avoidNSquaredComputation = new Dictionary<string, bool>(assemblyNames.Count);
           foreach (string s in assemblyNames) {
             if (avoidNSquaredComputation.ContainsKey(s)) {
               string msg = "Duplicate assembly name '" + s + "'.";
@@ -1824,8 +1824,8 @@ namespace ILMerging {
       }
       #endregion
       #region Load all assemblies
-      Hashtable assemblyCache = new Hashtable();
-      System.Compiler.AssemblyNodeList assems = new AssemblyNodeList();
+      Dictionary<int, AssemblyNode> assemblyCache = new Dictionary<int, AssemblyNode>();
+      List<AssemblyNode> assems = new List<AssemblyNode>();
       for (int i = 0, n = assemblyNames.Count; i < n; i++) {
         string fileSpec = (string)assemblyNames[i];
         var currentNumberOfFoundFiles = assems.Count;
@@ -2098,7 +2098,7 @@ namespace ILMerging {
       targetAssemblyIsComVisible = GetComVisibleSettingForAssembly(assemblyLevelAttributesAssembly);
       #endregion
       #region Merge each assembly into the target assembly
-      AssemblyNodeList externalReferences = new AssemblyNodeList();
+      List<AssemblyNode> externalReferences = new List<AssemblyNode>();
       for (int i = 0, n = assems.Count; i < n; i++) {
         AssemblyNode a = assems[i];
         WriteToLog("Merging assembly '{0}' into target assembly.", a.Name);
@@ -2193,7 +2193,7 @@ namespace ILMerging {
       else {
         int len = assemblyLevelAttributesAssembly.Win32Resources.Count;
         WriteToLog("Copying {1} Win32 Resources from assembly '{0}' into target assembly.", assemblyLevelAttributesAssembly.Name, len);
-        targetAssembly.Win32Resources = new Win32ResourceList(len);
+        targetAssembly.Win32Resources = new List<Win32Resource>(len);
         for (int i = 0, n = len; i < n; i++) {
           targetAssembly.Win32Resources.Add(assemblyLevelAttributesAssembly.Win32Resources[i]);
         }
@@ -2201,7 +2201,7 @@ namespace ILMerging {
       #endregion
       #region Set [ComVisible] on target assembly
       var comVisiblector = SystemTypes.ComVisibleAttribute.GetConstructor(SystemTypes.Boolean);
-      var assemblyComVisibleAttribute = new AttributeNode(new MemberBinding(null, comVisiblector), new ExpressionList(new Literal(targetAssemblyIsComVisible, SystemTypes.Boolean)));
+      var assemblyComVisibleAttribute = new AttributeNode(new MemberBinding(null, comVisiblector), new List<Expression>{new Literal(targetAssemblyIsComVisible, SystemTypes.Boolean)});
       targetAssembly.Attributes.Add(assemblyComVisibleAttribute);
       #endregion
       #endregion
@@ -2298,7 +2298,7 @@ namespace ILMerging {
       if (delaySign) {
         #region Make sure the target assembly has the AssemblyDelaySign attribute
         if (targetAssembly.Attributes == null) {
-          targetAssembly.Attributes = new AttributeList(1);
+          targetAssembly.Attributes = new List<AttributeNode>(1);
         }
         int i = 0;
         int n = targetAssembly.Attributes.Count;
@@ -2311,8 +2311,8 @@ namespace ILMerging {
         }
         if (i == n) { // not found
           InstanceInitializer ctor = SystemTypes.AssemblyDelaySignAttribute.GetConstructor(SystemTypes.Boolean);
-          if (ctor != null) {
-            AttributeNode a = new AttributeNode(new MemberBinding(null, ctor), new ExpressionList(Literal.True));
+            if (ctor != null) {
+              AttributeNode a = new AttributeNode(new MemberBinding(null, ctor), new List<Expression>{ Literal.True });
             targetAssembly.Attributes.Add(a);
           }
         }

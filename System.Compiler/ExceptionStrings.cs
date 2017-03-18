@@ -8,21 +8,21 @@ namespace Microsoft.Cci{
 namespace System.Compiler{
 #endif
   sealed class ExceptionStrings{
-    private readonly static WeakReference/*!*/ resMgr = new WeakReference(null);
+    private readonly static WeakReference<ResourceManager> resMgr = new WeakReference<ResourceManager>(null);
 
     private ExceptionStrings(){
     }
 
     internal static System.Resources.ResourceManager/*!*/ ResourceManager {
       get{
-        System.Resources.ResourceManager rMgr = ExceptionStrings.resMgr.Target as System.Resources.ResourceManager;
-        if (rMgr == null){
+        ResourceManager rMgr;
+        if (!resMgr.TryGetTarget(out rMgr)){
 #if CCINamespace
           rMgr = new System.Resources.ResourceManager("Microsoft.Cci.ExceptionStrings", typeof(ExceptionStrings).Assembly);
 #else
           rMgr = new System.Resources.ResourceManager("System.Compiler.ExceptionStrings", typeof(ExceptionStrings).Assembly);
 #endif
-          ExceptionStrings.resMgr.Target = rMgr;
+          resMgr.SetTarget(rMgr);
         }
         return rMgr;
       }

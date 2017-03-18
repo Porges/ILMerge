@@ -4,23 +4,23 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Collections.Specialized;
 #if FxCop
-using AssemblyReferenceList = Microsoft.Cci.AssemblyReferenceCollection;
-using AttributeList = Microsoft.Cci.AttributeNodeCollection;
-using BlockList = Microsoft.Cci.BlockCollection;
-using ExpressionList = Microsoft.Cci.ExpressionCollection;
-using InstructionList = Microsoft.Cci.InstructionCollection;
-using Int32List = System.Collections.Generic.List<int>;
-using InterfaceList = Microsoft.Cci.InterfaceCollection;
-using MemberList = Microsoft.Cci.MemberCollection;
-using MethodList = Microsoft.Cci.MethodCollection;
-using ModuleReferenceList = Microsoft.Cci.ModuleReferenceCollection;
-using NamespaceList = Microsoft.Cci.NamespaceCollection;
-using ParameterList = Microsoft.Cci.ParameterCollection;
-using ResourceList = Microsoft.Cci.ResourceCollection;
-using SecurityAttributeList = Microsoft.Cci.SecurityAttributeCollection;
-using StatementList = Microsoft.Cci.StatementCollection;
-using TypeNodeList = Microsoft.Cci.TypeNodeCollection;
-using Win32ResourceList = Microsoft.Cci.Win32ResourceCollection;
+using List<AssemblyReference> = Microsoft.Cci.AssemblyReferenceCollection;
+using List<AttributeNode> = Microsoft.Cci.AttributeNodeCollection;
+using List<Block> = Microsoft.Cci.BlockCollection;
+using List<Expression> = Microsoft.Cci.ExpressionCollection;
+using List<Instruction> = Microsoft.Cci.InstructionCollection;
+using List<int> = System.Collections.Generic.List<int>;
+using List<Interface> = Microsoft.Cci.InterfaceCollection;
+using List<Member> = Microsoft.Cci.MemberCollection;
+using List<Method> = Microsoft.Cci.MethodCollection;
+using List<ModuleReference> = Microsoft.Cci.ModuleReferenceCollection;
+using List<Namespace> = Microsoft.Cci.NamespaceCollection;
+using List<Parameter> = Microsoft.Cci.ParameterCollection;
+using List<Resource> = Microsoft.Cci.ResourceCollection;
+using List<SecurityAttribute> = Microsoft.Cci.SecurityAttributeCollection;
+using List<Statement> = Microsoft.Cci.StatementCollection;
+using List<TypeNode> = Microsoft.Cci.TypeNodeCollection;
+using List<Win32Resource> = Microsoft.Cci.Win32ResourceCollection;
 using Module = Microsoft.Cci.ModuleNode;
 using Class = Microsoft.Cci.ClassNode;
 using Interface = Microsoft.Cci.InterfaceNode;
@@ -46,6 +46,7 @@ using System.IO;
 using System.Text;
 #if !NoXml
 using System.Xml;
+using System.Linq;
 #endif
 #if CLOUSOT || CodeContracts
 using System.Diagnostics.Contracts;
@@ -101,36 +102,36 @@ namespace System.Compiler{
   /// </summary>
   public sealed class CollectibleSourceText : ISourceText{
     private string/*!*/ filePath;
-    private WeakReference/*!*/ fileContent;
+    private WeakReference<string> fileContent;
     private int length;
 
     public CollectibleSourceText(string/*!*/ filePath, int length) {
       this.filePath = filePath;
-      this.fileContent = new WeakReference(null);
+      this.fileContent = new WeakReference<string>(null);
       this.length = length;
       //^ base();
     }
     public CollectibleSourceText(string/*!*/ filePath, string fileContent) {
       this.filePath = filePath;
-      this.fileContent = new WeakReference(fileContent);
+      this.fileContent = new WeakReference<string>(fileContent);
       this.length = fileContent == null ? 0 : fileContent.Length;
       //^ base();
     }
     private string/*!*/ ReadFile() {
       string content = string.Empty;
       try {
-        StreamReader sr = new StreamReader(filePath);
-        content = sr.ReadToEnd();
+        content = File.ReadAllText(filePath);
         this.length = content.Length;
-        sr.Close();
       }catch{}
       return content;
     }
     public string/*!*/ GetSourceText() {
-      string source = (string)this.fileContent.Target;
-      if (source != null) return source;
-      source = this.ReadFile();
-      this.fileContent.Target = source;
+      string source;
+      if (!this.fileContent.TryGetTarget(out source))
+      {
+        source = this.ReadFile();
+        this.fileContent.SetTarget(source);
+      }
       return source;
     }
 
@@ -144,7 +145,7 @@ namespace System.Compiler{
       }
     }
     void ISourceText.MakeCollectible(){
-      this.fileContent.Target = null;
+      this.fileContent.SetTarget(null);
     }
   }
   /// <summary>
@@ -792,8 +793,8 @@ namespace System.Compiler{
 #endif
     }
 
-    readonly private Int32List/*!*/ lineList = new Int32List(8);
-    readonly private Int32List/*!*/ columnList = new Int32List(8);
+    readonly private List<int>/*!*/ lineList = new List<int>(8);
+    readonly private List<int>/*!*/ columnList = new List<int>(8);
 #if !FxCop
     public override int GetLine(int offset){
       return this.lineList[offset];
@@ -803,7 +804,7 @@ namespace System.Compiler{
     }
     public override void GetOffsets(int startLine, int startColumn, int endLine, int endColumn, out int startCol, out int endCol){
       int i = UnmanagedDocument.BinarySearch(this.lineList, startLine);
-      Int32List columnList = this.columnList;
+      List<int> columnList = this.columnList;
       startCol = 0;
       for (int j = i, n = columnList.Count; j < n; j++){
         if (columnList[j] >= startColumn){ startCol = j; break;}
@@ -814,7 +815,7 @@ namespace System.Compiler{
         if (columnList[j] >= endColumn){ endCol = j; break;}
       }
     }
-    private static int BinarySearch(Int32List/*!*/ list, int value){
+    private static int BinarySearch(List<int>/*!*/ list, int value){
       Contract.Requires(list != null);
 
       int mid = 0;
@@ -1050,10 +1051,10 @@ namespace System.Compiler{
     public StringCollection AliasesForReferencedAssemblies;
     public ModuleKindFlags ModuleKind = ModuleKindFlags.ConsoleApplication;
     public bool EmitManifest = true;
-    public StringList DefinedPreProcessorSymbols;
+    public List<string> DefinedPreProcessorSymbols;
     public string XMLDocFileName;
     public string RecursiveWildcard;
-    public StringList ReferencedModules;
+    public List<string> ReferencedModules;
     public string Win32Icon;
 #if !WHIDBEY
     private StringCollection embeddedResources = new StringCollection();
@@ -1075,7 +1076,7 @@ namespace System.Compiler{
     public bool PDBOnly;
     public bool Optimize;
     public bool IncrementalCompile;
-    public Int32List SuppressedWarnings;
+    public List<int> SuppressedWarnings;
     public bool CheckedArithmetic;
     public bool AllowUnsafeCode;
     public bool DisplayCommandLineHelp;
@@ -1087,7 +1088,7 @@ namespace System.Compiler{
     public bool FullyQualifyPaths;
     public int FileAlignment;
     public bool NoStandardLibrary;
-    public StringList AdditionalSearchPaths;
+    public List<string> AdditionalSearchPaths;
     public bool HeuristicReferenceResolution;
     public string RootNamespace;
     public bool CompileAndExecute;
@@ -1102,8 +1103,8 @@ namespace System.Compiler{
     public string AssemblyKeyName;
     public bool DelaySign;
     public TargetInformation TargetInformation;
-    public Int32List SpecificWarningsToTreatAsErrors;
-    public Int32List SpecificWarningsNotToTreatAsErrors;
+    public List<int> SpecificWarningsToTreatAsErrors;
+    public List<int> SpecificWarningsNotToTreatAsErrors;
     public string OutputPath;
     public string ExplicitOutputExtension;
     public AppDomain TargetAppDomain;
@@ -2895,10 +2896,10 @@ namespace System.Compiler{
   }
   public abstract class NaryExpression : Expression{
 #if !FxCop
-    public ExpressionList Operands;
+    public List<Expression> Operands;
 #else
-    private ExpressionList operands;
-    public ExpressionList Operands {
+    private List<Expression> operands;
+    public List<Expression> Operands {
       get {return this.operands;}
       internal set{this.operands = value;}
     }
@@ -2906,7 +2907,7 @@ namespace System.Compiler{
     protected NaryExpression()
       : base(NodeType.Nop){
     }
-    protected NaryExpression(ExpressionList operands, NodeType nodeType)
+    protected NaryExpression(List<Expression> operands, NodeType nodeType)
       : base(nodeType){
       this.Operands = operands;
     }
@@ -3590,8 +3591,8 @@ namespace System.Compiler{
   // i.e., for "true" comprehensions, the list of elements will always have either one or two elements (two if there is a default)
   public class Comprehension : Expression{
     public ComprehensionMode Mode = ComprehensionMode.Comprehension;
-    public ExpressionList BindingsAndFilters;
-    public ExpressionList Elements;
+    public List<Expression> BindingsAndFilters;
+    public List<Expression> Elements;
 
     public Node nonEnumerableTypeCtor; // used only when the comprehension should generate code for an IList, e.g.
     public Method AddMethod; // used only when the comprehension should generate code for an IList, e.g.
@@ -3609,32 +3610,32 @@ namespace System.Compiler{
   }
   public class NameBinding : Expression{
     public Identifier Identifier;
-    public MemberList BoundMembers;
+    public List<Member> BoundMembers;
     public Expression BoundMember;
     public int LexLevel;
     public Class MostNestedScope;
     public NameBinding()
       : base(NodeType.NameBinding){
     }
-    public NameBinding(Identifier identifier, MemberList boundMembers)
+    public NameBinding(Identifier identifier, List<Member> boundMembers)
       : base(NodeType.NameBinding){
       this.Identifier = identifier;
       this.BoundMembers = boundMembers;
     }
-    public NameBinding(Identifier identifier, MemberList boundMembers, SourceContext sctx)
+    public NameBinding(Identifier identifier, List<Member> boundMembers, SourceContext sctx)
       : base(NodeType.NameBinding){
       this.Identifier = identifier;
       this.BoundMembers = boundMembers;
       this.SourceContext = sctx;
     }
-    public NameBinding(Identifier identifier, MemberList boundMembers, Class mostNestedScope, int lexLevel)
+    public NameBinding(Identifier identifier, List<Member> boundMembers, Class mostNestedScope, int lexLevel)
       : base(NodeType.NameBinding){
       this.Identifier = identifier;
       this.BoundMembers = boundMembers;
       this.LexLevel = lexLevel;
       this.MostNestedScope = mostNestedScope;
     }
-    public NameBinding(Identifier identifier, MemberList boundMembers, Class mostNestedScope, int lexLevel, SourceContext sctx)
+    public NameBinding(Identifier identifier, List<Member> boundMembers, Class mostNestedScope, int lexLevel, SourceContext sctx)
       : base(NodeType.NameBinding) {
       this.Identifier = identifier;
       this.BoundMembers = boundMembers;
@@ -3648,15 +3649,15 @@ namespace System.Compiler{
   }
   public class TemplateInstance : Expression{
     public Expression Expression;
-    public TypeNodeList TypeArguments;
-    public TypeNodeList TypeArgumentExpressions;
+    public List<TypeNode> TypeArguments;
+    public List<TypeNode> TypeArgumentExpressions;
     public bool IsMethodTemplate;
-    public MemberList BoundMembers;
+    public List<Member> BoundMembers;
 
     public TemplateInstance()
       : this(null, null){
     }
-    public TemplateInstance(Expression expression, TypeNodeList typeArguments)
+    public TemplateInstance(Expression expression, List<TypeNode> typeArguments)
       : base(NodeType.TemplateInstance){
       this.Expression = expression;
       this.TypeArguments = typeArguments;
@@ -3689,13 +3690,13 @@ namespace System.Compiler{
     public MethodCall(){
       this.NodeType = NodeType.MethodCall;
     }
-    public MethodCall(Expression callee, ExpressionList arguments)
+    public MethodCall(Expression callee, List<Expression> arguments)
       : base(arguments, NodeType.MethodCall){
       this.callee = this.CalleeExpression = callee;
       this.isTailCall = false;
     }
 #endif
-    public MethodCall(Expression callee, ExpressionList arguments, NodeType typeOfCall)
+    public MethodCall(Expression callee, List<Expression> arguments, NodeType typeOfCall)
       : base(arguments, typeOfCall){
       this.callee = callee;
 #if !MinimalReader      
@@ -3704,11 +3705,11 @@ namespace System.Compiler{
       //this.isTailCall = false;
     }
 #if !MinimalReader
-    public MethodCall(Expression callee, ExpressionList arguments, NodeType typeOfCall, TypeNode resultType)
+    public MethodCall(Expression callee, List<Expression> arguments, NodeType typeOfCall, TypeNode resultType)
       : this(callee, arguments, typeOfCall){
       this.Type = resultType;
     }
-    public MethodCall(Expression callee, ExpressionList arguments, NodeType typeOfCall, TypeNode resultType, SourceContext sctx)
+    public MethodCall(Expression callee, List<Expression> arguments, NodeType typeOfCall, TypeNode resultType, SourceContext sctx)
       : this(callee, arguments, typeOfCall, resultType){
       this.SourceContext = sctx;
     }
@@ -3734,22 +3735,22 @@ namespace System.Compiler{
     public Construct(){
       this.NodeType = NodeType.Construct;
     }
-    public Construct(Expression constructor, ExpressionList arguments)
+    public Construct(Expression constructor, List<Expression> arguments)
       : base(arguments, NodeType.Construct){
       this.constructor = constructor;
     }
 #if !MinimalReader
-    public Construct(Expression constructor, ExpressionList arguments, SourceContext sctx)
+    public Construct(Expression constructor, List<Expression> arguments, SourceContext sctx)
       : base(arguments, NodeType.Construct){
       this.constructor = constructor;
       this.SourceContext = sctx;
     }
-    public Construct(Expression constructor, ExpressionList arguments, TypeNode type)
+    public Construct(Expression constructor, List<Expression> arguments, TypeNode type)
       : base(arguments, NodeType.Construct){
       this.constructor = constructor;
       this.Type = type;
     }
-    public Construct(Expression constructor, ExpressionList arguments, TypeNode type, SourceContext sctx)
+    public Construct(Expression constructor, List<Expression> arguments, TypeNode type, SourceContext sctx)
       : base(arguments, NodeType.Construct) {
       this.constructor = constructor;
       this.Type = type;
@@ -3766,14 +3767,14 @@ namespace System.Compiler{
     private int rank;
 #if !MinimalReader
     public TypeNode ElementTypeExpression;
-    public ExpressionList Initializers;
+    public List<Expression> Initializers;
     public Expression Owner;
 #endif
     public ConstructArray(){
       this.NodeType = NodeType.ConstructArray;
       this.rank = 1;
     }
-    public ConstructArray(TypeNode elementType, ExpressionList sizes, ExpressionList initializers)
+    public ConstructArray(TypeNode elementType, List<Expression> sizes, List<Expression> initializers)
       : base(sizes, NodeType.ConstructArray){
       this.elementType = elementType;
       this.Operands = sizes;
@@ -3783,7 +3784,7 @@ namespace System.Compiler{
 #endif
     }
 #if !MinimalReader
-    public ConstructArray(TypeNode elementType, ExpressionList initializers)
+    public ConstructArray(TypeNode elementType, List<Expression> initializers)
       : base(null, NodeType.ConstructArray){
       this.elementType = elementType;
       this.Initializers = initializers;
@@ -3791,7 +3792,7 @@ namespace System.Compiler{
       if (elementType != null)
         this.Type = elementType.GetArrayType(1);
     }
-    public ConstructArray(TypeNode elementType, int rank, ExpressionList initializers)
+    public ConstructArray(TypeNode elementType, int rank, List<Expression> initializers)
       : base(null, NodeType.ConstructArray){
       this.elementType = elementType;
       this.Initializers = initializers;
@@ -3813,11 +3814,11 @@ namespace System.Compiler{
   public class ConstructFlexArray : NaryExpression{
     public TypeNode ElementType;
     public TypeNode ElementTypeExpression;
-    public ExpressionList Initializers;
+    public List<Expression> Initializers;
     public ConstructFlexArray(){
       this.NodeType = NodeType.ConstructFlexArray;
     }
-    public ConstructFlexArray(TypeNode elementType, ExpressionList sizes, ExpressionList initializers)
+    public ConstructFlexArray(TypeNode elementType, List<Expression> sizes, List<Expression> initializers)
       : base(sizes, NodeType.ConstructFlexArray){
       this.ElementType = elementType;
       this.Operands = sizes;
@@ -3862,7 +3863,7 @@ namespace System.Compiler{
     }
   }
   public class ConstructTuple : Expression{
-    public FieldList Fields;
+    public List<Field> Fields;
     public ConstructTuple()
       : base(NodeType.ConstructTuple){
     }
@@ -3883,22 +3884,22 @@ namespace System.Compiler{
     public Indexer(){
       this.NodeType = NodeType.Indexer;
     }
-    public Indexer(Expression @object, ExpressionList arguments)
+    public Indexer(Expression @object, List<Expression> arguments)
       : base(arguments, NodeType.Indexer){
       this.@object = @object;
     }
 #if !MinimalReader
-    public Indexer(Expression Object, ExpressionList arguments, SourceContext sctx)
+    public Indexer(Expression Object, List<Expression> arguments, SourceContext sctx)
       : base(arguments, NodeType.Indexer){
       this.@object = Object;
       this.SourceContext = sctx;
     }
-    public Indexer(Expression Object, ExpressionList arguments, TypeNode elementType)
+    public Indexer(Expression Object, List<Expression> arguments, TypeNode elementType)
       : base(arguments, NodeType.Indexer){
       this.@object = Object;
       this.elementType = this.Type = elementType;
     }
-    public Indexer(Expression Object, ExpressionList arguments, TypeNode elementType, SourceContext sctx)
+    public Indexer(Expression Object, List<Expression> arguments, TypeNode elementType, SourceContext sctx)
       : base(arguments, NodeType.Indexer){
       this.@object = Object;
       this.elementType = this.Type = elementType;
@@ -3939,8 +3940,8 @@ namespace System.Compiler{
   /// </summary>
   public class LRExpression : Expression{
     public Expression Expression;
-    public LocalList Temporaries;
-    public ExpressionList SubexpressionsToEvaluateOnce;
+    public List<Local> Temporaries;
+    public List<Expression> SubexpressionsToEvaluateOnce;
     public LRExpression(Expression/*!*/ expression)
       : base(NodeType.LRExpression){
       this.Expression = expression;
@@ -3983,7 +3984,7 @@ namespace System.Compiler{
 #endif
 #if !MinimalReader
   public class AnonymousNestedFunction : Expression{
-    public ParameterList Parameters;
+    public List<Parameter> Parameters;
     public Block Body;
     public Method Method;
     public Expression Invocation;
@@ -3991,12 +3992,12 @@ namespace System.Compiler{
     public AnonymousNestedFunction()
       : base(NodeType.AnonymousNestedFunction){
     }
-    public AnonymousNestedFunction(ParameterList parameters, Block body)
+    public AnonymousNestedFunction(List<Parameter> parameters, Block body)
       : base(NodeType.AnonymousNestedFunction){
       this.Parameters = parameters;
       this.Body = body;
     }
-    public AnonymousNestedFunction(ParameterList parameters, Block body, SourceContext sctx)
+    public AnonymousNestedFunction(List<Parameter> parameters, Block body, SourceContext sctx)
       : base(NodeType.AnonymousNestedFunction){
       this.Parameters = parameters;
       this.Body = body;
@@ -4054,7 +4055,7 @@ namespace System.Compiler{
 #endif
   }
   public class Block : Statement{
-    private StatementList statements;
+    private List<Statement> statements;
 #if !MinimalReader
     public bool Checked;
     public bool SuppressCheck;
@@ -4069,7 +4070,7 @@ namespace System.Compiler{
     public Block()
       : base(NodeType.Block){
     }
-    public Block(StatementList statements)
+    public Block(List<Statement> statements)
       : base(NodeType.Block){
 #if CLOUSOT || CodeContracts
       Contract.Ensures(this.Statements == statements);
@@ -4077,19 +4078,19 @@ namespace System.Compiler{
       this.statements = statements;
     }
 #if !MinimalReader && !CodeContracts
-    public Block(StatementList statements, SourceContext sourceContext)
+    public Block(List<Statement> statements, SourceContext sourceContext)
       : base(NodeType.Block){
       this.SourceContext = sourceContext;
       this.statements = statements;
     }
-    public Block(StatementList statements, bool Checked, bool SuppressCheck, bool IsUnsafe)
+    public Block(List<Statement> statements, bool Checked, bool SuppressCheck, bool IsUnsafe)
       : base(NodeType.Block){
       this.Checked = Checked;
       this.IsUnsafe = IsUnsafe;
       this.SuppressCheck = SuppressCheck;
       this.statements = statements;
     }
-    public Block(StatementList statements, SourceContext sourceContext, bool Checked, bool SuppressCheck, bool IsUnsafe)
+    public Block(List<Statement> statements, SourceContext sourceContext, bool Checked, bool SuppressCheck, bool IsUnsafe)
       : base(NodeType.Block){
       this.Checked = Checked;
       this.IsUnsafe = IsUnsafe;
@@ -4101,7 +4102,7 @@ namespace System.Compiler{
       return "B#" + this.UniqueKey.ToString();
     }
 #endif
-    public StatementList Statements{    
+    public List<Statement> Statements{    
       get{return this.statements;}
       set{this.statements = value;}
     }
@@ -4116,7 +4117,7 @@ namespace System.Compiler{
   }
   public class FunctionDeclaration : Statement{
     public Identifier Name;
-    public ParameterList Parameters;
+    public List<Parameter> Parameters;
     public TypeNode ReturnType;
     public TypeNode ReturnTypeExpression;
     public Block Body;
@@ -4125,7 +4126,7 @@ namespace System.Compiler{
     public FunctionDeclaration()
       : base(NodeType.FunctionDeclaration){
     }
-    public FunctionDeclaration(Identifier name, ParameterList parameters, TypeNode returnType, Block body)
+    public FunctionDeclaration(Identifier name, List<Parameter> parameters, TypeNode returnType, Block body)
       : base(NodeType.FunctionDeclaration){
       this.Name = name;
       this.Parameters = parameters;
@@ -4351,13 +4352,13 @@ namespace System.Compiler{
   public class Try : Statement{
     private CatchList catchers;
     private FilterList filters;
-    private FaultHandlerList faultHandlers;
+    private List<FaultHandler> faultHandlers;
     private Finally finallyClause;
     private Block tryBlock;
     public Try()
       : base(NodeType.Try){
     }
-    public Try(Block tryBlock, CatchList catchers, FilterList filters, FaultHandlerList faultHandlers, Finally Finally)
+    public Try(Block tryBlock, CatchList catchers, FilterList filters, List<FaultHandler> faultHandlers, Finally Finally)
       : base(NodeType.Try){
       this.catchers = catchers;
       this.faultHandlers = faultHandlers;
@@ -4373,7 +4374,7 @@ namespace System.Compiler{
       get{return this.filters;}
       set{this.filters = value;}
     }
-    public FaultHandlerList FaultHandlers{
+    public List<FaultHandler> FaultHandlers{
       get{return this.faultHandlers;}
       set{this.faultHandlers = value;}
     }
@@ -4550,13 +4551,13 @@ namespace System.Compiler{
   public class For : Statement{
     public Block Body;
     public Expression Condition;
-    public StatementList Incrementer;
-    public StatementList Initializer;
-    public ExpressionList Invariants;
+    public List<Statement> Incrementer;
+    public List<Statement> Initializer;
+    public List<Expression> Invariants;
     public For()
       : base(NodeType.For){
     }
-    public For(StatementList initializer, Expression condition, StatementList incrementer, Block body)
+    public For(List<Statement> initializer, Expression condition, List<Statement> incrementer, Block body)
       : base(NodeType.For){
       this.Body = body;
       this.Condition = condition;
@@ -4572,7 +4573,7 @@ namespace System.Compiler{
     public TypeNode TargetVariableType;
     public TypeNode TargetVariableTypeExpression;
     public Expression InductionVariable;
-    public ExpressionList Invariants;
+    public List<Expression> Invariants;
     public bool StatementTerminatesNormallyIfEnumerableIsNull = true;
     public bool StatementTerminatesNormallyIfEnumeratorIsNull = true;
     public ForEach()
@@ -4643,11 +4644,11 @@ namespace System.Compiler{
 #endif
   public class SwitchInstruction : Statement{
     private Expression expression;
-    private BlockList targets;
+    private List<Block> targets;
     public SwitchInstruction()
       : base(NodeType.SwitchInstruction){
     }
-    public SwitchInstruction(Expression expression, BlockList targets)
+    public SwitchInstruction(Expression expression, List<Block> targets)
       : base(NodeType.SwitchInstruction){
       this.expression = expression;
       this.targets = targets;
@@ -4656,7 +4657,7 @@ namespace System.Compiler{
       get{return this.expression;}
       set{this.expression = value;}
     }
-    public BlockList Targets{
+    public List<Block> Targets{
       get{return this.targets;}
       set{this.targets = value;}
     }
@@ -4691,7 +4692,7 @@ namespace System.Compiler{
   }
   public class While : Statement{
     public Expression Condition;
-    public ExpressionList Invariants;
+    public List<Expression> Invariants;
     public Block Body;
     public While()
       : base(NodeType.While){
@@ -4704,7 +4705,7 @@ namespace System.Compiler{
   }
   public class DoWhile : Statement{
     public Expression Condition;
-    public ExpressionList Invariants;
+    public List<Expression> Invariants;
     public Block Body;
     public DoWhile()
       : base(NodeType.DoWhile){
@@ -4840,7 +4841,7 @@ namespace System.Compiler{
     public Identifier Alias;
 
     /// <summary>The list of assemblies being aliased.</summary>
-    public AssemblyReferenceList AliasedAssemblies;
+    public List<AssemblyReference> AliasedAssemblies;
     
     /// <summary>The expression that was (or should be) resolved into a type, namespace or Uri.</summary>
     public Expression AliasedExpression;
@@ -4944,14 +4945,14 @@ namespace System.Compiler{
     public AttributeNode()
       : base(NodeType.Attribute){
     }
-    public AttributeNode(Expression constructor, ExpressionList expressions)
+    public AttributeNode(Expression constructor, List<Expression> expressions)
       : base(NodeType.Attribute){
       this.constructor = constructor;
       this.expressions = expressions;
       this.target = AttributeTargets.All;
     }
 #if !MinimalReader
-    public AttributeNode(Expression constructor, ExpressionList expressions, AttributeTargets target)
+    public AttributeNode(Expression constructor, List<Expression> expressions, AttributeTargets target)
       : base(NodeType.Attribute){
       this.constructor = constructor;
       this.expressions = expressions;
@@ -4963,12 +4964,12 @@ namespace System.Compiler{
       get{return this.constructor;}
       set{this.constructor = value;}
     }
-    private ExpressionList expressions;
+    private List<Expression> expressions;
     /// <summary>
     /// Invariant: positional arguments occur first and in order in the expression list. Named arguments
     /// follow posititional arguments in any order.
     /// </summary>
-    public ExpressionList Expressions{
+    public List<Expression> Expressions{
       get{return this.expressions;}
       set{this.expressions = value;}
     }
@@ -5034,7 +5035,7 @@ namespace System.Compiler{
         this.usageAttribute = AttributeNode.DoesNotExist;
         return;
       }
-      ExpressionList args = attr.Expressions;
+      List<Expression> args = attr.Expressions;
       if (args == null || args.Count < 1) return;
       Literal lit = args[0] as Literal;
       if (lit == null || !(lit.Value is int)) {
@@ -5088,10 +5089,10 @@ namespace System.Compiler{
       if (mb == null) return null;
       InstanceInitializer constr = mb.BoundMember as InstanceInitializer;
       if (constr == null) return null;
-      ParameterList parameters = constr.Parameters;
+      List<Parameter> parameters = constr.Parameters;
       int paramCount = parameters == null ? 0 : parameters.Count;
       object[] argumentValues = new object[paramCount];
-      ExpressionList argumentExpressions = this.Expressions;
+      List<Expression> argumentExpressions = this.Expressions;
       int exprCount = argumentExpressions == null ? 0 : argumentExpressions.Count;
       for (int i = 0, j = 0; i < paramCount; i++){
         if (j >= exprCount) return null;
@@ -5242,8 +5243,8 @@ namespace System.Compiler{
       get{return this.action;}
       set{this.action = value;}
     }
-    private AttributeList permissionAttributes;
-    public AttributeList PermissionAttributes{
+    private List<AttributeNode> permissionAttributes;
+    public List<AttributeNode> PermissionAttributes{
       get{return this.permissionAttributes;}
       set{this.permissionAttributes = value;}
     }
@@ -5315,7 +5316,7 @@ namespace System.Compiler{
     }
     protected System.Security.PermissionSet InstantiatePermissionAttributes(){
       System.Security.PermissionSet permissions = new System.Security.PermissionSet(System.Security.Permissions.PermissionState.None);
-      AttributeList permissionAttributes = this.PermissionAttributes;
+      List<AttributeNode> permissionAttributes = this.PermissionAttributes;
       for (int i = 0, n = permissionAttributes == null ? 0 : permissionAttributes.Count; i < n; i++){
         //^ assert permissionAttributes != null;
         object result = this.GetPermissionOrSetOfPermissionsFromAttribute(permissionAttributes[i]);
@@ -5422,7 +5423,7 @@ namespace System.Compiler{
     public delegate TypeNode TypeNodeProvider(Identifier/*!*/ @namespace, Identifier/*!*/ name);
     protected TypeNodeProvider provideTypeNode;
     protected TrivialHashtable namespaceTable = new TrivialHashtable();
-    protected NamespaceList namespaceList;
+    protected List<Namespace> namespaceList;
     protected int savedTypesLength;
     public delegate void CustomAttributeProvider(Module/*!*/ module);
     protected CustomAttributeProvider provideCustomAttributes;
@@ -5473,7 +5474,7 @@ namespace System.Compiler{
     public virtual void Dispose(){ 
       if (this.reader != null) this.reader.Dispose();
       this.reader = null;
-      ModuleReferenceList mrefs = this.moduleReferences;
+      var mrefs = this.moduleReferences;
       for (int i = 0, n = mrefs == null ? 0 : mrefs.Count; i < n; i++){
         //^ assert mrefs != null;
         ModuleReference mr = mrefs[i];
@@ -5482,11 +5483,7 @@ namespace System.Compiler{
       }
       this.moduleReferences = null;
     }
-    private AssemblyReferenceList assemblyReferences;
-    public AssemblyReferenceList AssemblyReferences{
-      get{return this.assemblyReferences;}
-      set{this.assemblyReferences = value;}
-    }
+    public List<AssemblyReference> AssemblyReferences { get; set; }
     private AssemblyNode containingAssembly;
     /// <summary>The assembly, if any, that includes this module in its ModuleReferences.</summary>
     public AssemblyNode ContainingAssembly{
@@ -5600,11 +5597,11 @@ namespace System.Compiler{
       set{this.metadataImportErrors = value;}
     }
 #endif
-    protected AttributeList attributes;
+    protected List<AttributeNode> attributes;
     /// <summary>
     /// The attributes associated with this module or assembly. This corresponds to C# custom attributes with the assembly or module target specifier.
     /// </summary>
-    public virtual AttributeList Attributes{
+    public virtual List<AttributeNode> Attributes{
       get{
         if (this.attributes != null) return this.attributes;
         if (this.provideCustomAttributes != null){
@@ -5613,7 +5610,7 @@ namespace System.Compiler{
               this.provideCustomAttributes(this);
           }
         }else
-          this.attributes = new AttributeList();
+          this.attributes = new List<AttributeNode>();
         return this.attributes;
       }
       set{
@@ -5621,18 +5618,18 @@ namespace System.Compiler{
       }
     }
 
-    protected SecurityAttributeList securityAttributes;
+    protected List<SecurityAttribute> securityAttributes;
     /// <summary>
     /// Declarative security for the module or assembly.
     /// </summary>
-    public virtual SecurityAttributeList SecurityAttributes{
+    public virtual List<SecurityAttribute> SecurityAttributes{
       get{
         if (this.securityAttributes != null) return this.securityAttributes;
         if (this.provideCustomAttributes != null){
-          AttributeList dummy = this.Attributes; //As a side effect, this.securityAttributes gets populated
+          var dummy = this.Attributes; //As a side effect, this.securityAttributes gets populated
           if (dummy != null) dummy = null;
         }else
-          this.securityAttributes = new SecurityAttributeList();
+          this.securityAttributes = new List<SecurityAttribute>();
         return this.securityAttributes;
       }
       set{
@@ -5702,7 +5699,7 @@ namespace System.Compiler{
       get{
         if (this.entryPoint == null){
           if (this.provideCustomAttributes != null){
-            AttributeList dummy = this.Attributes; //Gets the entry point as a side effect
+            var dummy = this.Attributes; //Gets the entry point as a side effect
             if (dummy != null) dummy = null;
           }else
             this.entryPoint = Module.NoSuchMethod;
@@ -5714,9 +5711,9 @@ namespace System.Compiler{
         this.entryPoint = value;
       }
     }
-    protected ModuleReferenceList moduleReferences;
+    protected List<ModuleReference> moduleReferences;
     /// <summary>The list of modules (excluding assemblies) defining members that are referred to in this module or assembly.</summary>
-    public ModuleReferenceList ModuleReferences{
+    public List<ModuleReference> ModuleReferences{
       get{
         //Populating the type list may cause module references to be added
         if (this.Types == null) return this.moduleReferences;
@@ -5739,11 +5736,11 @@ namespace System.Compiler{
       return false;
     }
 #endif
-    protected ResourceList resources;
+    protected List<Resource> resources;
     /// <summary>
     /// A list of managed resources linked or embedded into this module or assembly.
     /// </summary>
-    public virtual ResourceList Resources{
+    public virtual List<Resource> Resources{
       get{
         if (this.resources != null) return this.resources;
         if (this.provideResources != null){
@@ -5752,25 +5749,25 @@ namespace System.Compiler{
               this.provideResources(this);
           }
         }else
-          this.resources = new ResourceList();
+          this.resources = new List<Resource>();
         return this.resources;
       }
       set{
         this.resources = value;
       }
     }
-    protected Win32ResourceList win32Resources;
+    protected List<Win32Resource> win32Resources;
     /// <summary>
     /// A list of Win32 resources embedded in this module or assembly.
     /// </summary>
-    public virtual Win32ResourceList Win32Resources{
+    public virtual List<Win32Resource> Win32Resources{
       get{
         if (this.win32Resources != null) return this.win32Resources;
         if (this.provideResources != null){
-          ResourceList dummy = this.Resources; //gets the win32 resources as as side effect
+          List<Resource> dummy = this.Resources; //gets the win32 resources as as side effect
           if (dummy != null) dummy = null;
         }else
-          this.win32Resources = new Win32ResourceList();
+          this.win32Resources = new List<Win32Resource>();
         return this.win32Resources;
       }
       set{
@@ -5804,20 +5801,20 @@ namespace System.Compiler{
     /// to members with references to the actual members.
     /// </summary>
     public virtual AttributeNode GetAttribute(TypeNode attributeType){
-      AttributeList attributes = this.GetAttributes(attributeType, 1);
+      List<AttributeNode> attributes = this.GetAttributes(attributeType, 1);
       if (attributes != null && attributes.Count > 0)
         return attributes[0];
       return null;
     }
 	
-    public virtual AttributeList GetAttributes(TypeNode attributeType){
+    public virtual List<AttributeNode> GetAttributes(TypeNode attributeType){
       return GetAttributes(attributeType, Int32.MaxValue);
     }
 
-    public virtual AttributeList GetAttributes(TypeNode attributeType, int maxCount){
-      AttributeList foundAttributes = new AttributeList();
+    public virtual List<AttributeNode> GetAttributes(TypeNode attributeType, int maxCount){
+      List<AttributeNode> foundAttributes = new List<AttributeNode>();
       if (attributeType == null) return foundAttributes;
-      AttributeList attributes = this.Attributes;
+      List<AttributeNode> attributes = this.Attributes;
       for (int i = 0, count = 0, n = attributes == null ? 0 : attributes.Count; i < n && count < maxCount; i++){
         AttributeNode attr = attributes[i];
         if (attr == null) continue;
@@ -5870,16 +5867,16 @@ namespace System.Compiler{
     }
 #endif
     protected TrivialHashtable validNamespaces;
-    public NamespaceList GetNamespaceList(){
+    public List<Namespace> GetNamespaceList(){
       if (this.reader != null) return this.GetNamespaceListFromReader();
 #if !MinimalReader
-      TypeNodeList types = this.Types;
+      List<TypeNode> types = this.Types;
       int n = types == null ? 0 : types.Count;
       if (this.namespaceList == null || n > this.savedTypesLength){
         lock(this){
           if (this.namespaceList != null && this.types != null && this.types.Count == this.savedTypesLength)
             return this.namespaceList;
-          NamespaceList nsList = this.namespaceList = new NamespaceList();
+          List<Namespace> nsList = this.namespaceList = new List<Namespace>();
           TrivialHashtable nsTable = this.validNamespaces = new TrivialHashtable();
           for (int i = 0; i < n; i++){
             //^ assert this.types != null;
@@ -5893,7 +5890,7 @@ namespace System.Compiler{
             }
             ns = new Namespace(t.Namespace);
             ns.isPublic = t.IsPublic;
-            ns.Types = new TypeNodeList();
+            ns.Types = new List<TypeNode>();
             ns.Types.Add(t);
             nsTable[t.Namespace.UniqueIdKey] = ns;
             nsList.Add(ns);
@@ -5903,13 +5900,13 @@ namespace System.Compiler{
 #endif
       return this.namespaceList;
     }
-    private NamespaceList GetNamespaceListFromReader()
+    private List<Namespace> GetNamespaceListFromReader()
       //^ requires this.reader != null;
     {
       if (this.namespaceList == null){
         lock (Module.GlobalLock) {
           this.reader.GetNamespaces();
-          NamespaceList nsList = this.namespaceList = this.reader.namespaceList;
+          List<Namespace> nsList = this.namespaceList = this.reader.namespaceList;
           TrivialHashtable nsTable = this.validNamespaces = new TrivialHashtable();
           for (int i = 0, n = nsList == null ? 0 : nsList.Count; i < n; i++) {
             //^ assert nsList != null;
@@ -5926,8 +5923,8 @@ namespace System.Compiler{
       if (nspace == null || nspace.Name == null) return;
       lock (Module.GlobalLock) {
         int key = nspace.Name.UniqueIdKey;
-        TypeNodeList types = this.Types;
-        TypeNodeList nsTypes = nspace.Types = new TypeNodeList();
+        List<TypeNode> types = this.Types;
+        List<TypeNode> nsTypes = nspace.Types = new List<TypeNode>();
         for (int i = 0, n = types == null ? 0 : types.Count; i < n; i++) {
           TypeNode t = types[i];
           if (t == null || t.Namespace == null) continue;
@@ -5949,7 +5946,7 @@ namespace System.Compiler{
     }
     public Module GetNestedModule(string moduleName){
       if (this.Types == null){ Debug.Assert(false);} //Just get the types to pull in any exported types
-      ModuleReferenceList moduleReferences = this.ModuleReferences; //This should now contain all interesting referenced modules
+      List<ModuleReference> moduleReferences = this.ModuleReferences; //This should now contain all interesting referenced modules
       for (int i = 0, n = moduleReferences == null ? 0 : moduleReferences.Count; i < n; i++){
         ModuleReference mref = moduleReferences[i];
         if (mref == null) continue;
@@ -5990,7 +5987,7 @@ namespace System.Compiler{
         }
         if (!lookInReferencedAssemblies)
           goto notfound;
-        AssemblyReferenceList refs = this.AssemblyReferences;
+        List<AssemblyReference> refs = this.AssemblyReferences;
         for (int i = 0, n = refs == null ? 0 : refs.Count; i < n; i++){
           AssemblyReference ar = refs[i];
           if (ar == null) continue;
@@ -6017,7 +6014,7 @@ namespace System.Compiler{
       }
       TypeNode result = this.GetType(@namespace, name);
       if (result != null || !lookInReferencedAssemblies) return result;
-      AssemblyReferenceList refs = this.AssemblyReferences;
+      List<AssemblyReference> refs = this.AssemblyReferences;
       for (int i = 0, n = refs == null ? 0 : refs.Count; i < n; i++) {
         AssemblyReference ar = refs[i];
         if (ar == null) continue;
@@ -6072,12 +6069,12 @@ namespace System.Compiler{
       }
       return null;
     }
-    protected internal TypeNodeList types;
+    protected internal List<TypeNode> types;
     /// <summary>The types contained in this module or assembly.</summary>
-    public virtual TypeNodeList Types{
+    public virtual List<TypeNode> Types{
       get{
 #if CodeContracts
-        Contract.Ensures(Contract.Result<TypeNodeList>() != null);
+        Contract.Ensures(Contract.Result<List<TypeNode>>() != null);
         
 #endif
         if (this.types != null) return this.types;
@@ -6087,7 +6084,7 @@ namespace System.Compiler{
               this.provideTypeNodeList(this);
           }
         }else
-          this.types = new TypeNodeList();
+          this.types = new List<TypeNode>();
         return this.types;
       }
       set{
@@ -6101,7 +6098,7 @@ namespace System.Compiler{
       if (module == null) return false;
       AssemblyNode assembly = module as AssemblyNode;
       if (assembly != null){
-        AssemblyReferenceList arefs = this.AssemblyReferences;
+        List<AssemblyReference> arefs = this.AssemblyReferences;
         for (int i = 0, n = arefs == null ? 0 : arefs.Count; i < n; i++) {
           AssemblyReference aref = arefs[i];
           if (aref == null) continue;
@@ -6111,7 +6108,7 @@ namespace System.Compiler{
       }
       if (this.ContainingAssembly != module.ContainingAssembly)
         return false;
-      ModuleReferenceList mrefs = this.ModuleReferences;
+      List<ModuleReference> mrefs = this.ModuleReferences;
       for (int i = 0, n = mrefs == null ? 0 : mrefs.Count; i < n; i++) {
         //^ assert mrefs != null;
         ModuleReference mref = mrefs[i];
@@ -6200,7 +6197,7 @@ namespace System.Compiler{
         xwriter.WriteEndElement();
       }
       xwriter.WriteStartElement("members");
-      TypeNodeList types = this.Types;
+      List<TypeNode> types = this.Types;
       for (int i = 1, n = types == null ? 0 : types.Count; i < n; i++){
         //^ assert types != null;
         TypeNode t = types[i]; if (t == null) continue;
@@ -6212,9 +6209,9 @@ namespace System.Compiler{
     }
 #endif
 #if !NoWriter
-    public delegate MethodBodySpecializer/*!*/ MethodBodySpecializerFactory(Module/*!*/ m, TypeNodeList/*!*/ pars, TypeNodeList/*!*/ args);
+    public delegate MethodBodySpecializer/*!*/ MethodBodySpecializerFactory(Module/*!*/ m, List<TypeNode>/*!*/ pars, List<TypeNode>/*!*/ args);
     public MethodBodySpecializerFactory CreateMethodBodySpecializer;
-    public MethodBodySpecializer/*!*/ GetMethodBodySpecializer(TypeNodeList/*!*/ pars, TypeNodeList/*!*/ args) {
+    public MethodBodySpecializer/*!*/ GetMethodBodySpecializer(List<TypeNode>/*!*/ pars, List<TypeNode>/*!*/ args) {
       if (CreateMethodBodySpecializer != null)
         return this.CreateMethodBodySpecializer(this, pars, args);
       return new MethodBodySpecializer(this, pars, args);
@@ -6242,8 +6239,8 @@ namespace System.Compiler{
         if (value == null) return;
         #region Copy over any external references from the contract assembly to this one (if needed)
         // These external references are needed only for the contract deserializer
-        AssemblyReferenceList ars = new AssemblyReferenceList();
-        AssemblyReferenceList contractReferences = value.AssemblyReferences;
+        List<AssemblyReference> ars = new List<AssemblyReference>();
+        List<AssemblyReference> contractReferences = value.AssemblyReferences;
         // see if contractReferences[i] is already in the external references of "this"
         for (int i = 0, n = contractReferences == null ? 0 : contractReferences.Count; i < n; i++){
           //^ assert contractReferences != null;
@@ -6265,7 +6262,7 @@ namespace System.Compiler{
           }
         }
         if (this.AssemblyReferences == null) 
-          this.AssemblyReferences = new AssemblyReferenceList();
+          this.AssemblyReferences = new List<AssemblyReference>();
         for (int i = 0, n = ars.Count; i < n; i++){
           this.AssemblyReferences.Add(ars[i]);
         }
@@ -6284,7 +6281,7 @@ namespace System.Compiler{
         #endregion Copy over any assembly-level attributes from the Contracts namespace
 #endif
 
-        TypeNodeList instantiatedTypes = null;
+        List<TypeNode> instantiatedTypes = null;
         if (this.reader != null) instantiatedTypes = this.reader.GetInstantiatedTypes();
         if (instantiatedTypes != null)
           for (int i = 0, n = instantiatedTypes.Count; i < n; i++){
@@ -6329,7 +6326,7 @@ namespace System.Compiler{
     [Obsolete("Please use GetAttribute(TypeNode attributeType)")]
     public virtual AttributeNode GetAttributeByName(TypeNode attributeType){
       if (attributeType == null) return null;
-      AttributeList attributes = this.Attributes;
+      List<AttributeNode> attributes = this.Attributes;
       for (int i = 0, n = attributes == null ? 0 : attributes.Count; i < n; i++){
         //^ assert attributes != null;
         AttributeNode attr = attributes[i];
@@ -6350,7 +6347,7 @@ namespace System.Compiler{
     /// </summary>
     public virtual AttributeNode GetModuleAttribute(TypeNode attributeType){
       if (attributeType == null) return null;
-      AttributeList attributes = this.ModuleAttributes;
+      List<AttributeNode> attributes = this.ModuleAttributes;
       for (int i = 0, n = attributes == null ? 0 : attributes.Count; i < n; i++){
         //^ assert attributes != null;
         AttributeNode attr = attributes[i];
@@ -6437,18 +6434,18 @@ namespace System.Compiler{
       get{return this.fileLastWriteTimeUtc;}
       set{this.fileLastWriteTimeUtc = value;}
     }
-    protected TypeNodeList exportedTypes;
+    protected List<TypeNode> exportedTypes;
     /// <summary>
     /// Public types defined in other modules making up this assembly and to which other assemblies may refer to.
     /// </summary>
-    public virtual TypeNodeList ExportedTypes{
+    public virtual List<TypeNode> ExportedTypes{
       get{
         if (this.exportedTypes != null) return this.exportedTypes;
         if (this.provideTypeNodeList != null){
-          TypeNodeList types = this.Types; //Gets the exported types as a side-effect
+          List<TypeNode> types = this.Types; //Gets the exported types as a side-effect
           if (types != null) types = null;
         }else
-          this.exportedTypes = new TypeNodeList();
+          this.exportedTypes = new List<TypeNode>();
         return this.exportedTypes;
       }
       set{
@@ -6750,7 +6747,7 @@ namespace System.Compiler{
       object ob = this.friends[assembly.UniqueKey];
       if (ob == (object)string.Empty) return false;
       if (ob == this) return true;
-      AttributeList attributes = assembly.Attributes;
+      List<AttributeNode> attributes = assembly.Attributes;
       for (int i = 0, n = attributes == null ? 0 : attributes.Count; i < n; i++){
         //^ assert attributes != null;
         AttributeNode attr = attributes[i];
@@ -6789,12 +6786,12 @@ namespace System.Compiler{
       this.friends[assembly.UniqueKey] = string.Empty;
       return false;
     }
-    public AssemblyReferenceList GetFriendAssemblies(){
+    public List<AssemblyReference> GetFriendAssemblies(){
       if (SystemTypes.InternalsVisibleToAttribute == null) return null;
-      AttributeList attributes = this.Attributes;
+      List<AttributeNode> attributes = this.Attributes;
       if (attributes == null) return null;
       int n = attributes.Count; if (n == 0) return null;
-      AssemblyReferenceList result = new AssemblyReferenceList(n);
+      List<AssemblyReference> result = new List<AssemblyReference>(n);
       for (int i = 0; i < n; i++){
         AttributeNode attr = attributes[i];
         if (attr == null) continue;
@@ -6819,7 +6816,7 @@ namespace System.Compiler{
     /// <summary>
     /// The attributes associated with this module. This corresponds to C# custom attributes with the module target specifier.
     /// </summary>
-    public virtual AttributeList ModuleAttributes {
+    public virtual List<AttributeNode> ModuleAttributes {
       get {
         if (this.moduleAttributes != null) return this.moduleAttributes;
         if (this.provideCustomAttributes != null) {
@@ -6828,14 +6825,14 @@ namespace System.Compiler{
               this.provideCustomAttributes(this);
           }
         } else
-          this.moduleAttributes = new AttributeList();
+          this.moduleAttributes = new List<AttributeNode>();
         return this.moduleAttributes;
       }
       set {
         this.moduleAttributes = value;
       }
     }
-    protected AttributeList moduleAttributes;
+    protected List<AttributeNode> moduleAttributes;
 
     protected byte[] token;
     public virtual byte[] PublicKeyToken{
@@ -6868,7 +6865,7 @@ namespace System.Compiler{
   }
   public class AssemblyReference : Node{
 #if !MinimalReader
-    public IdentifierList Aliases;
+    public List<Identifier> Aliases;
 #endif
     private byte[] token;
     internal Reader Reader;
@@ -7172,12 +7169,12 @@ namespace System.Compiler{
     /// </summary>
     public bool IsUnsafe;
     /// <summary>A list of other nodes that refer to this member. Must be filled in by client code.</summary>
-    public NodeList References;
+    public List<Node> References;
 #endif
     protected Member(NodeType nodeType)
       : base(nodeType){
     }
-    protected Member(TypeNode declaringType, AttributeList attributes, Identifier name, NodeType nodeType)
+    protected Member(TypeNode declaringType, List<AttributeNode> attributes, Identifier name, NodeType nodeType)
       : base(nodeType){
       this.attributes = attributes;
       this.declaringType = declaringType;
@@ -7198,20 +7195,20 @@ namespace System.Compiler{
 #if ExtendedRuntime
     private Anonymity anonymity;
 #endif
-    protected AttributeList attributes;
+    protected List<AttributeNode> attributes;
     private bool notObsolete;
     private ObsoleteAttribute obsoleteAttribute;
 
     /// <summary>
     /// The attributes of this member. Corresponds to custom attribute annotations in C#.
     /// </summary>
-    public virtual AttributeList Attributes{
+    public virtual List<AttributeNode> Attributes{
       get{
 #if CodeContracts
-        CC.Contract.Ensures(CC.Contract.Result<AttributeList>() != null);
+        CC.Contract.Ensures(CC.Contract.Result<List<AttributeNode>>() != null);
 #endif
         if (this.attributes != null) return this.attributes;
-        return this.attributes = new AttributeList();
+        return this.attributes = new List<AttributeNode>();
       }
       set{
         this.attributes = value;
@@ -7275,7 +7272,7 @@ namespace System.Compiler{
 #endif
     public virtual AttributeNode GetAttribute(TypeNode attributeType) {
       if (attributeType == null) return null;
-      AttributeList attributes = this.Attributes;
+      List<AttributeNode> attributes = this.Attributes;
       for (int i = 0, n = attributes == null ? 0 : attributes.Count; i < n; i++) {
         AttributeNode attr = attributes[i];
         if (attr == null) continue;
@@ -7292,10 +7289,10 @@ namespace System.Compiler{
       }
       return null;
     }
-    public virtual AttributeList GetFilteredAttributes(TypeNode attributeType){
+    public virtual List<AttributeNode> GetFilteredAttributes(TypeNode attributeType){
       if (attributeType == null) return this.Attributes;
-      AttributeList attributes = this.Attributes;
-      AttributeList filtered = new AttributeList();
+      List<AttributeNode> attributes = this.Attributes;
+      List<AttributeNode> filtered = new List<AttributeNode>();
       for (int i = 0, n = attributes == null ? 0 : attributes.Count; i < n; i++) {
         AttributeNode attr = attributes[i];
         if (attr == null) continue;
@@ -7312,11 +7309,11 @@ namespace System.Compiler{
       return filtered;
     }
 #if ExtendedRuntime
-    public virtual AttributeList GetAllAttributes(TypeNode attributeType)
+    public virtual List<AttributeNode> GetAllAttributes(TypeNode attributeType)
     {
-      AttributeList filtered = new AttributeList();
+      List<AttributeNode> filtered = new List<AttributeNode>();
       if (attributeType == null) return filtered;
-      AttributeList attributes = this.Attributes;
+      List<AttributeNode> attributes = this.Attributes;
       for (int i = 0, n = attributes == null ? 0 : attributes.Count; i < n; i++) {
         AttributeNode attr = attributes[i];
         if (attr == null) continue;
@@ -7433,7 +7430,7 @@ namespace System.Compiler{
         if (this.obsoleteAttribute == null){
           AttributeNode attr = this.GetAttribute(SystemTypes.ObsoleteAttribute);
           if (attr != null){
-            ExpressionList args = attr.Expressions;
+            List<Expression> args = attr.Expressions;
             int numArgs = args == null ? 0 : args.Count;
             Literal lit0 = numArgs > 0 ? args[0] as Literal : null;
             Literal lit1 = numArgs > 1 ? args[1] as Literal : null;
@@ -7575,7 +7572,7 @@ namespace System.Compiler{
               return (System.ComponentModel.EditorBrowsableState)(this.filterPriority - 1);
             }
         }
-        AttributeList attributes = this.Attributes;
+        List<AttributeNode> attributes = this.Attributes;
         for (int i = 0, n = attributes == null ? 0 : attributes.Count; i < n; i++){
           //^ assert attributes != null;
           AttributeNode attr = attributes[i];
@@ -7799,7 +7796,7 @@ namespace System.Compiler{
       set{this.flags = value;}
     }
     /// <summary>The interfaces implemented by this class or struct, or the extended by this interface.</summary>
-    public virtual InterfaceList Interfaces {
+    public virtual List<Interface> Interfaces {
       get
       {
         if (this.interfaces == null)
@@ -7817,15 +7814,15 @@ namespace System.Compiler{
             }
           }
           else
-            this.interfaces = new InterfaceList(0);
+            this.interfaces = new List<Interface>(0);
         }
         return this.interfaces;
       }
       set { this.interfaces = value; }
     }
-    protected InterfaceList interfaces;
+    protected List<Interface> interfaces;
 #if !MinimalReader
-    public InterfaceList InterfaceExpressions;
+    public List<Interface> InterfaceExpressions;
 #endif
     private Identifier @namespace;
     /// <summary>The namespace to which this type belongs. Null if the type is nested inside another type.</summary>
@@ -7841,7 +7838,7 @@ namespace System.Compiler{
     }
 #if !MinimalReader
     /// <summary>If this type is the combined result of a number of partial type definitions, this lists the partial definitions.</summary>
-    public TypeNodeList IsDefinedBy;
+    public List<TypeNode> IsDefinedBy;
 #endif
     /// <summary>
     /// True if this type is the result of a template instantiation with arguments that are themselves template parameters. 
@@ -7859,7 +7856,7 @@ namespace System.Compiler{
     /// all extensions implement the IExtendTypeNode interface (in the Sing# code base).
     /// null = empty list
     /// </summary>
-    private TypeNodeList extensions = null;
+    private List<TypeNode> extensions = null;
     /// <summary>
     /// Whether or not the list of extensions has been examined;
     /// it's a bug to record a new extension after extensions have been examined.
@@ -7871,13 +7868,13 @@ namespace System.Compiler{
     /// <param name="extension"></param>
     public void RecordExtension(TypeNode extension) { 
       Debug.Assert(!extensionsExamined, "adding an extension after they've already been examined");
-      if (this.extensions == null) this.extensions = new TypeNodeList();
+      if (this.extensions == null) this.extensions = new List<TypeNode>();
       this.extensions.Add(extension);
     }
     /// <summary>
     /// The property that should be accessed by clients to get the list of extensions of this type.
     /// </summary>
-    public TypeNodeList Extensions {
+    public List<TypeNode> Extensions {
       get {
         this.extensionsExamined = true;
         return this.extensions;
@@ -7891,14 +7888,14 @@ namespace System.Compiler{
     /// When duplicating a type node, we want to transfer the extensions and the extensionsExamined flag without 
     /// treating this as a "touch" that sets the examined flag.  Pretty ugly, though.
     /// </summary>
-    public TypeNodeList ExtensionsNoTouch{
+    public List<TypeNode> ExtensionsNoTouch{
       get{ return this.extensions; }
     }
     /// <summary>
     /// Copy a (possibly transformed) set of extensions from source to the
     /// receiver, including whether or not the extensions have been examined.
     /// </summary>
-    public void DuplicateExtensions(TypeNode source, TypeNodeList newExtensions){
+    public void DuplicateExtensions(TypeNode source, List<TypeNode> newExtensions){
       if (source == null) return;
       this.extensions = newExtensions;
       this.extensionsExamined = source.extensionsExamined;
@@ -8008,8 +8005,8 @@ namespace System.Compiler{
       this.Contract = new TypeContract(this);
 #endif
   }
-    internal TypeNode(Module declaringModule, TypeNode declaringType, AttributeList attributes, TypeFlags flags,
-      Identifier Namespace, Identifier name, InterfaceList interfaces, MemberList members, NodeType nodeType)
+    internal TypeNode(Module declaringModule, TypeNode declaringType, List<AttributeNode> attributes, TypeFlags flags,
+      Identifier Namespace, Identifier name, List<Interface> interfaces, List<Member> members, NodeType nodeType)
       : base(null, attributes, name, nodeType){
       this.DeclaringModule = declaringModule;
       this.DeclaringType = declaringType;
@@ -8021,7 +8018,7 @@ namespace System.Compiler{
       this.Contract = new TypeContract(this, true);
 #endif
   }
-    public override AttributeList Attributes{
+    public override List<AttributeNode> Attributes{
       get{
         if (this.attributes == null){
           var provideTypeAttributes = this.ProvideTypeAttributes;
@@ -8034,7 +8031,7 @@ namespace System.Compiler{
               }
             }
           }else
-            this.attributes = new AttributeList(0);
+            this.attributes = new List<AttributeNode>(0);
         }
         return this.attributes;
       }
@@ -8042,17 +8039,17 @@ namespace System.Compiler{
         this.attributes = value;
       }
     }
-    protected SecurityAttributeList securityAttributes;
+    protected List<SecurityAttribute> securityAttributes;
     /// <summary>Contains declarative security information associated with the type.</summary>
-    public SecurityAttributeList SecurityAttributes{
+    public List<SecurityAttribute> SecurityAttributes{
       get{
         if (this.securityAttributes != null) return this.securityAttributes;
         if (this.attributes == null){
-          AttributeList al = this.Attributes; //Getting the type attributes also gets the security attributes, in the case of a type that was read in by the Reader
+          List<AttributeNode> al = this.Attributes; //Getting the type attributes also gets the security attributes, in the case of a type that was read in by the Reader
           if (al != null) al = null;
           if (this.securityAttributes != null) return this.securityAttributes;
         }
-        return this.securityAttributes = new SecurityAttributeList(0);
+        return this.securityAttributes = new List<SecurityAttribute>(0);
       }
       set{
         this.securityAttributes = value;
@@ -8079,9 +8076,9 @@ namespace System.Compiler{
         }
       }
     }
-    protected internal MemberList defaultMembers;
+    protected internal List<Member> defaultMembers;
     /// <summary>A list of any members of this type that have the DefaultMember attribute.</summary>
-    public virtual MemberList DefaultMembers{
+    public virtual List<Member> DefaultMembers{
       get{
         int n = this.Members.Count;
         if (n != this.memberCount){
@@ -8089,7 +8086,7 @@ namespace System.Compiler{
           this.defaultMembers = null;
         }
         if (this.defaultMembers == null){
-          AttributeList attrs = this.Attributes;
+          List<AttributeNode> attrs = this.Attributes;
           Identifier defMemName = null;
           for (int j = 0, m = attrs == null ? 0 : attrs.Count; j < m; j++){
             //^ assert attrs != null;
@@ -8117,7 +8114,7 @@ namespace System.Compiler{
           if (defMemName != null)
             this.defaultMembers = this.GetMembersNamed(defMemName);
           else
-            this.defaultMembers = new MemberList(0);
+            this.defaultMembers = new List<Member>(0);
         }
         return this.defaultMembers;
       }
@@ -8167,7 +8164,7 @@ namespace System.Compiler{
     }
     private string GetUnmangledNameWithTypeParameters(bool fullNamesForTypeParameters){
       StringBuilder sb = new StringBuilder(this.GetUnmangledNameWithoutTypeParameters());
-      TypeNodeList templateParameters = this.TemplateParameters;
+      List<TypeNode> templateParameters = this.TemplateParameters;
       if (this.Template != null) templateParameters = this.TemplateArguments;
       for (int i = 0, n = templateParameters == null ? 0 : templateParameters.Count; i < n; i++){
         //^ assert templateParameters != null;
@@ -8539,9 +8536,9 @@ namespace System.Compiler{
     }
 
     /// <summary>A list of the types that contribute to the structure of a structural type.</summary>
-    public virtual TypeNodeList StructuralElementTypes{
+    public virtual List<TypeNode> StructuralElementTypes{
       get{
-        TypeNodeList result = this.TemplateArguments;
+        List<TypeNode> result = this.TemplateArguments;
         if (result != null && result.Count > 0) return result;
         return this.TemplateParameters;
       }
@@ -8631,7 +8628,7 @@ namespace System.Compiler{
     // this type node.  (Under Extended Sing#, additional members can
     // be logically part of a type node but declared in a separate
     // syntactic type node.)
-    protected internal MemberList members;
+    protected internal List<Member> members;
     protected volatile internal bool membersBeingPopulated;
     /// <summary>
     /// The list of members contained inside this type, by default ignoring any extensions of this type.
@@ -8639,10 +8636,10 @@ namespace System.Compiler{
     /// If the value of members is null and the value of ProvideTypeMembers is not null, the 
     /// TypeMemberProvider delegate is called to fill in the value of this property.
     /// </summary>
-    public virtual MemberList Members{
+    public virtual List<Member> Members{
       get{
 #if CLOUSOT
-        CC.Contract.Ensures(CC.Contract.Result<MemberList>() != null);
+        CC.Contract.Ensures(CC.Contract.Result<List<Member>>() != null);
 #endif
         if (this.members == null || this.membersBeingPopulated)
           if (this.ProvideTypeMembers != null && this.ProviderHandle != null){
@@ -8657,7 +8654,7 @@ namespace System.Compiler{
             }
             }
           }else
-            this.members = new MemberList();
+            this.members = new List<Member>();
         return this.members;
       }
       set{
@@ -8709,9 +8706,9 @@ namespace System.Compiler{
           this.Attributes.Add(attr);
       }
 
-      if (this.BaseType != null) { MemberList junk = this.BaseType.Members; if (junk != null) junk = null; }
+      if (this.BaseType != null) { List<Member> junk = this.BaseType.Members; if (junk != null) junk = null; }
       Hashtable contractByFullName = new Hashtable();
-      MemberList contractMembers = contractType.Members;
+      List<Member> contractMembers = contractType.Members;
       for (int i = 0, n = contractMembers == null ? 0 : contractMembers.Count; i < n; i++){
         //^ assert contractMembers != null;
         Field f = contractMembers[i] as Field;
@@ -8774,7 +8771,7 @@ namespace System.Compiler{
         sb.Append("#ctor");
       else if (m.Name != null)
         sb.Append(m.Name.ToString());
-      ParameterList parameters = m.Parameters;
+      List<Parameter> parameters = m.Parameters;
       for (int i = 0, n = parameters == null ? 0 : parameters.Count; i < n; i++){
         Parameter par = parameters[i];
         if (par == null || par.Type == null) continue;
@@ -8823,7 +8820,7 @@ namespace System.Compiler{
           if (attr != null) {
               if (attr.Type.Namespace != null && attr.Type.Namespace.UniqueIdKey == contractsNamespaceKey) {
                   if (codeMethod.ReturnAttributes == null) {
-                      codeMethod.ReturnAttributes = new AttributeList();
+                      codeMethod.ReturnAttributes = new List<AttributeNode>();
                   }
                   codeMethod.ReturnAttributes.Add(attr);
               }
@@ -8832,8 +8829,8 @@ namespace System.Compiler{
 
 
       // Copy the parameter-level contract attributes and type over to the shadowed method's parameters.
-      ParameterList contractParameters = contractMethod.Parameters;
-      ParameterList codeParameters = codeMethod.Parameters;
+      List<Parameter> contractParameters = contractMethod.Parameters;
+      List<Parameter> codeParameters = codeMethod.Parameters;
       if (contractParameters != null && codeParameters != null && contractParameters.Count <= codeParameters.Count) {
         for (int i = 0, n = contractParameters.Count; i < n; i++) {
           Parameter contractParameter = contractParameters[i];
@@ -8844,7 +8841,7 @@ namespace System.Compiler{
             AttributeNode attr = contractParameter.Attributes[a];
             if (attr == null || attr.Type == null) continue;
             if (attr.Type.Namespace != null && attr.Type.Namespace.UniqueIdKey == contractsNamespaceKey){
-              if (codeParameter.Attributes == null) codeParameter.Attributes = new AttributeList();
+              if (codeParameter.Attributes == null) codeParameter.Attributes = new List<AttributeNode>();
               codeParameter.Attributes.Add(attr);
             }
           }
@@ -8882,8 +8879,8 @@ namespace System.Compiler{
         codeType = OptionalModifier.For(optModType.Modifier, t);
       }
       if (contractType.Template != null && codeType.Template != null && contractType.TemplateArguments != null && codeType.TemplateArguments != null) {
-        TypeNodeList args = contractType.TemplateArguments.Clone();
-        TypeNodeList codeArgs = codeType.TemplateArguments;
+        List<TypeNode> args = contractType.TemplateArguments.Clone();
+        List<TypeNode> codeArgs = codeType.TemplateArguments;
         for (int i = 0, n = args.Count, m = codeArgs.Count; i < n && i < m; i++) {
           TypeNode argType = args[i];
           TypeNode codeArgType = codeArgs[i];
@@ -8908,7 +8905,7 @@ namespace System.Compiler{
       }
       return null;
     }
-    public TypeNodeList ReferencedTemplateInstances;
+    public List<TypeNode> ReferencedTemplateInstances;
 #endif
     protected TypeNode template;
     /// <summary>The (generic) type template from which this type was instantiated. Null if this is not a (generic) type template instance.</summary>
@@ -8917,7 +8914,7 @@ namespace System.Compiler{
         TypeNode result = this.template;
         if (result == null){
           if (this.isGeneric || TargetPlatform.GenericTypeNamesMangleChar != '_') return null;
-          AttributeList attributes = this.Attributes;
+          List<AttributeNode> attributes = this.Attributes;
           lock(this){
             if (this.template != null){
               if (this.template == TypeNode.NotSpecified)
@@ -8930,7 +8927,7 @@ namespace System.Compiler{
             if (attr == null) continue;
             MemberBinding mb = attr.Constructor as MemberBinding;
             if (mb == null || mb.BoundMember == null || mb.BoundMember.DeclaringType != SystemTypes.TemplateInstanceAttribute) continue;
-            ExpressionList exprs = attr.Expressions;
+            List<Expression> exprs = attr.Expressions;
             if (exprs == null || exprs.Count != 2) continue;
             Literal lit = exprs[0] as Literal;
             if (lit == null) continue;
@@ -8941,7 +8938,7 @@ namespace System.Compiler{
               object[] types = lit.Value as object[];
               if (types == null) continue;
               int m = types == null ? 0 : types.Length;
-              TypeNodeList templateArguments = new TypeNodeList(m);
+              List<TypeNode> templateArguments = new List<TypeNode>(m);
               for (int j = 0; j < m; j++) {
                 TypeNode t = types[j] as TypeNode;
                 if (t == null) continue;
@@ -8966,9 +8963,9 @@ namespace System.Compiler{
 #if !MinimalReader
     public TypeNode TemplateExpression;
 #endif
-    protected TypeNodeList templateArguments;
+    protected List<TypeNode> templateArguments;
     /// <summary>The arguments used when this (generic) type template instance was instantiated.</summary>
-    public virtual TypeNodeList TemplateArguments{
+    public virtual List<TypeNode> TemplateArguments{
       get{
         if (this.template == null){
           TypeNode templ = this.Template; //Will fill in the arguments
@@ -8981,10 +8978,10 @@ namespace System.Compiler{
       }
     }
 #if !MinimalReader
-    public TypeNodeList TemplateArgumentExpressions;
+    public List<TypeNode> TemplateArgumentExpressions;
 #endif
-    internal TypeNodeList consolidatedTemplateArguments;
-    public virtual TypeNodeList ConsolidatedTemplateArguments{
+    internal List<TypeNode> consolidatedTemplateArguments;
+    public virtual List<TypeNode> ConsolidatedTemplateArguments{
       get{
         if (this.consolidatedTemplateArguments == null)
           this.consolidatedTemplateArguments = this.GetConsolidatedTemplateArguments();
@@ -8994,17 +8991,17 @@ namespace System.Compiler{
         this.consolidatedTemplateArguments = value;
       }
     }
-    private void AddTemplateParametersFromAttributeEncoding(TypeNodeList result)
+    private void AddTemplateParametersFromAttributeEncoding(List<TypeNode> result)
     {
 #if ExtendedRuntime
       if (result.Count == 0) {
-        AttributeList attributes = this.Attributes;
+        List<AttributeNode> attributes = this.Attributes;
         for (int i = 0, n = attributes == null ? 0 : attributes.Count; i < n; i++) {
           AttributeNode attr = attributes[i];
           if (attr == null) continue;
           MemberBinding mb = attr.Constructor as MemberBinding;
           if (mb == null || mb.BoundMember == null || mb.BoundMember.DeclaringType != SystemTypes.TemplateAttribute) continue;
-          ExpressionList exprs = attr.Expressions;
+          List<Expression> exprs = attr.Expressions;
           if (exprs == null || exprs.Count != 1) continue;
           Literal lit = exprs[0] as Literal;
           if (lit == null) continue;
@@ -9021,27 +9018,27 @@ namespace System.Compiler{
       }
 #endif
     }
-    internal TypeNodeList templateParameters;
+    internal List<TypeNode> templateParameters;
     /// <summary>The type parameters of this type. Null if this type is not a (generic) type template.</summary>
-    public virtual TypeNodeList TemplateParameters{
+    public virtual List<TypeNode> TemplateParameters{
       get{
         // Template parameters are populated lazily along with BaseClass and Interfaces. Trigger their population
         // via Interfaces
         var _ = this.Interfaces;
-        TypeNodeList result = this.templateParameters;
+        List<TypeNode> result = this.templateParameters;
         return result;
       }
       set{
         if (value == null){
           if (this.templateParameters == null) return;
           if (this.templateParameters.Count > 0)
-            value = new TypeNodeList(0);
+            value = new List<TypeNode>(0);
         }
         this.templateParameters = value;
       }
     }
-    protected internal TypeNodeList consolidatedTemplateParameters;
-    public virtual TypeNodeList ConsolidatedTemplateParameters{
+    protected internal List<TypeNode> consolidatedTemplateParameters;
+    public virtual List<TypeNode> ConsolidatedTemplateParameters{
       get{
         if (this.consolidatedTemplateParameters == null)
           this.consolidatedTemplateParameters = this.GetConsolidatedTemplateParameters();
@@ -9091,14 +9088,14 @@ namespace System.Compiler{
     /// base classes and interfaces, and methods from any (known) extensions.
     /// </summary>
     /// <param name="result">A method list to which the abstract methods must be appended.</param>
-    public virtual void GetAbstractMethods(MethodList/*!*/ result) {
+    public virtual void GetAbstractMethods(List<Method>/*!*/ result) {
       if (!this.IsAbstract) return;
       //For each interface, get abstract methods and keep those that are not implemented by this class or a base class
-      InterfaceList interfaces = this.Interfaces;
+      List<Interface> interfaces = this.Interfaces;
       for (int i = 0, n = interfaces == null ? 0 : interfaces.Count; i < n; i++){
         Interface iface = interfaces[i];
         if (iface == null) continue;
-        MemberList imembers = iface.Members;
+        List<Member> imembers = iface.Members;
         for (int j = 0, m = imembers == null ? 0 : imembers.Count; j < m; j++){
           Method meth = imembers[j] as Method;
           if (meth == null) continue;
@@ -9163,8 +9160,8 @@ namespace System.Compiler{
         return result;
       }
     }
-    protected internal MemberList constructors;
-    public virtual MemberList GetConstructors(){
+    protected internal List<Member> constructors;
+    public virtual List<Member> GetConstructors(){
       if (this.Members.Count != this.memberCount) this.constructors = null;
       if (this.constructors != null) return this.constructors;
       lock(this){
@@ -9185,14 +9182,14 @@ namespace System.Compiler{
       else
         return Identifier.For(this.DeclaringType.DocumentationId+"."+this.Name);
     }
-    internal virtual void AppendDocumentIdMangledName(StringBuilder/*!*/ sb, TypeNodeList methodTypeParameters, TypeNodeList typeParameters) {
+    internal virtual void AppendDocumentIdMangledName(StringBuilder/*!*/ sb, List<TypeNode> methodTypeParameters, List<TypeNode> typeParameters) {
       if (this.DeclaringType != null) {
         this.DeclaringType.AppendDocumentIdMangledName(sb, methodTypeParameters, typeParameters);
         sb.Append('.');
         sb.Append(this.GetUnmangledNameWithoutTypeParameters());
       }else
         sb.Append(this.GetFullUnmangledNameWithoutTypeParameters());
-      TypeNodeList templateArguments = this.TemplateArguments;
+      List<TypeNode> templateArguments = this.TemplateArguments;
       int n = templateArguments == null ? 0 : templateArguments.Count;
       if (n == 0) return;
       sb.Append('{');
@@ -9224,20 +9221,20 @@ namespace System.Compiler{
       if (t.template != null) return false;
       return IsCompleteTemplate(t.DeclaringType);
     }
-    public virtual TypeNode/*!*/ GetGenericTemplateInstance(Module/*!*/ module, TypeNodeList/*!*/ consolidatedArguments)
+    public virtual TypeNode/*!*/ GetGenericTemplateInstance(Module/*!*/ module, List<TypeNode>/*!*/ consolidatedArguments)
     {
       CC.Contract.Ensures(CC.Contract.Result<TypeNode>() == null || CC.Contract.ForAll(0, consolidatedArguments.Count, i => consolidatedArguments[i] == CC.Contract.Result<TypeNode>().consolidatedTemplateArguments[i]));
       Debug.Assert(IsCompleteTemplate(this));
       if (this.DeclaringType == null)
         return this.GetTemplateInstance(module, null, null, consolidatedArguments);
-      TypeNodeList myArgs = this.GetOwnTemplateArguments(consolidatedArguments);
+      List<TypeNode> myArgs = this.GetOwnTemplateArguments(consolidatedArguments);
       if (myArgs == consolidatedArguments)
         return this.GetTemplateInstance(module, null, this.DeclaringType, consolidatedArguments);
       int n = consolidatedArguments.Count;
       int m = myArgs == null ? 0 : myArgs.Count;
       int k = n - m;
       Debug.Assert(k > 0);
-      TypeNodeList parentArgs = new TypeNodeList(k);
+      List<TypeNode> parentArgs = new List<TypeNode>(k);
       for (int i = 0; i < k; i++) parentArgs.Add(consolidatedArguments[i]);
       TypeNode declaringType = this.DeclaringType.GetGenericTemplateInstance(module, parentArgs);
       var result = GetConsolidatedTemplateInstance(module, null, declaringType, myArgs, consolidatedArguments);
@@ -9247,17 +9244,17 @@ namespace System.Compiler{
       return result;
     }
 #if false
-    public virtual TypeNode/*!*/ OldGetGenericTemplateInstance(Module/*!*/ module, TypeNodeList/*!*/ consolidatedArguments) {
+    public virtual TypeNode/*!*/ OldGetGenericTemplateInstance(Module/*!*/ module, List<TypeNode>/*!*/ consolidatedArguments) {
       if (this.DeclaringType == null)
         return this.GetTemplateInstance(module, null, null, consolidatedArguments);
-      TypeNodeList myArgs = this.GetOwnTemplateArguments(consolidatedArguments);
+      List<TypeNode> myArgs = this.GetOwnTemplateArguments(consolidatedArguments);
       if (myArgs == consolidatedArguments)
         return this.GetTemplateInstance(module, null, this.DeclaringType, consolidatedArguments);
       int n = consolidatedArguments.Count;
       int m = myArgs == null ? 0 : myArgs.Count;
       int k = n - m;
       Debug.Assert(k > 0);
-      TypeNodeList parentArgs = new TypeNodeList(k);
+      List<TypeNode> parentArgs = new List<TypeNode>(k);
       for (int i = 0; i < k; i++) parentArgs.Add(consolidatedArguments[i]);
       TypeNode declaringType = this.DeclaringType.GetGenericTemplateInstance(module, parentArgs);
       TypeNode nestedType = declaringType.GetNestedType(this.Name);
@@ -9285,17 +9282,17 @@ namespace System.Compiler{
     }
 #endif
     public virtual TypeNode/*!*/ GetTemplateInstance(Module module, params TypeNode[] typeArguments) {
-      return this.GetTemplateInstance(module, null, null, new TypeNodeList(typeArguments));
+      return this.GetTemplateInstance(module, null, null, new List<TypeNode>(typeArguments));
     }
     protected virtual TypeNode TryToFindExistingInstance(Module/*!*/ module, Identifier/*!*/ uniqueMangledName)
     {
       return module.TryGetTemplateInstance(uniqueMangledName);
     }
-    private Identifier/*!*/ GetUniqueMangledTemplateInstanceName(TypeNodeList/*!*/ templateArguments)
+    private Identifier/*!*/ GetUniqueMangledTemplateInstanceName(List<TypeNode>/*!*/ templateArguments)
     {
       return GetUniqueMangledTemplateInstanceName(this.UniqueKey, templateArguments);
     }
-    internal static Identifier/*!*/ GetUniqueMangledTemplateInstanceName(int templateId, TypeNodeList/*!*/ templateArguments) {
+    internal static Identifier/*!*/ GetUniqueMangledTemplateInstanceName(int templateId, List<TypeNode>/*!*/ templateArguments) {
       var strings = new string[1 + templateArguments.Count];
       strings[0] = templateId.ToString();
       for (int i = 0, n = templateArguments.Count; i < n; i++) {
@@ -9306,7 +9303,7 @@ namespace System.Compiler{
       return Identifier.For(string.Join(":", strings));
     }
 
-    public virtual Identifier/*!*/ GetMangledTemplateInstanceName(TypeNodeList/*!*/ templateArguments, out bool notFullySpecialized){
+    public virtual Identifier/*!*/ GetMangledTemplateInstanceName(List<TypeNode>/*!*/ templateArguments, out bool notFullySpecialized){
       StringBuilder mangledNameBuilder = new StringBuilder(this.Name.ToString());
       notFullySpecialized = false;
       for (int i = 0, n = templateArguments.Count; i < n; i++){
@@ -9347,7 +9344,7 @@ namespace System.Compiler{
     /// <param name="templateArguments">The template arguments.</param>
     /// <returns>An instance of the template. Always the same instance for the same arguments.</returns>
     public virtual TypeNode/*!*/ GetTemplateInstance(TypeNode referringType, params TypeNode[] templateArguments) {
-      return this.GetTemplateInstance(referringType, new TypeNodeList(templateArguments));
+      return this.GetTemplateInstance(referringType, new List<TypeNode>(templateArguments));
     }
     /// <summary>
     /// Gets an instance for the given template arguments of this (generic) template type.
@@ -9357,7 +9354,7 @@ namespace System.Compiler{
     /// code referrring to the instance.</param>
     /// <param name="templateArguments">The template arguments.</param>
     /// <returns>An instance of the template. Always the same instance for the same arguments.</returns>
-    public virtual TypeNode/*!*/ GetTemplateInstance(TypeNode referringType, TypeNodeList templateArguments) {
+    public virtual TypeNode/*!*/ GetTemplateInstance(TypeNode referringType, List<TypeNode> templateArguments) {
       if (referringType == null) return this;
       Module module = referringType.DeclaringModule;
       return this.GetTemplateInstance(module, referringType, this.DeclaringType, templateArguments);
@@ -9368,12 +9365,12 @@ namespace System.Compiler{
         return (TypeNode)this.StructurallyEquivalentType[uniqueMangledName.UniqueIdKey];
       }
     }
-    private static int CompareArgs(TypeNodeList templateArguments, TypeNodeList typeNodeList)
+    private static int CompareArgs(List<TypeNode> templateArguments, List<TypeNode> typeNodes)
     {
       for (int i = 0; i < templateArguments.Count; i++)
       {
-        if (templateArguments[i].UniqueKey < typeNodeList[i].UniqueKey) return -1;
-        if (templateArguments[i].UniqueKey > typeNodeList[i].UniqueKey) return 1;
+        if (templateArguments[i].UniqueKey < typeNodes[i].UniqueKey) return -1;
+        if (templateArguments[i].UniqueKey > typeNodes[i].UniqueKey) return 1;
       }
       return 0;
     }
@@ -9382,7 +9379,7 @@ namespace System.Compiler{
     {
       private struct TemplateInstanceEntry
       {
-        public TypeNodeList TemplateArguments;
+        public List<TypeNode> TemplateArguments;
         public TypeNode Instance;
       }
 
@@ -9394,12 +9391,12 @@ namespace System.Compiler{
 
       public int Count { get { return this.count; } }
 
-      public TypeNode Find(TypeNodeList args)
+      public TypeNode Find(List<TypeNode> args)
       {
         if (this.cache == null) return null;
         return this.BinarySearch(args);
       }
-      private TypeNode BinarySearch(TypeNodeList templateArguments)
+      private TypeNode BinarySearch(List<TypeNode> templateArguments)
       {
         CC.Contract.Requires(this.cache != null);
         CC.Contract.Ensures(CC.Contract.Result<TypeNode>() == null || CC.Contract.ForAll(0, templateArguments.Count, i => templateArguments[i] == CC.Contract.Result<TypeNode>().consolidatedTemplateArguments[i]));
@@ -9424,7 +9421,7 @@ namespace System.Compiler{
         return null;
       }
 
-      internal void Insert(TypeNodeList templateArguments, TypeNode instance)
+      internal void Insert(List<TypeNode> templateArguments, TypeNode instance)
       {
         if (this.cache == null)
         {
@@ -9486,13 +9483,13 @@ namespace System.Compiler{
     private TemplateInstanceCache templateInstanceCache;
 
 
-    private TypeNode TryToFindExistingInstance(TypeNodeList consolidatedTemplateArguments)
+    private TypeNode TryToFindExistingInstance(List<TypeNode> consolidatedTemplateArguments)
     {
       CC.Contract.Requires(consolidatedTemplateArguments.Count == this.ConsolidatedTemplateParameters.Count);
 
       return this.templateInstanceCache.Find(consolidatedTemplateArguments);
     }
-    private void AddInstance(TypeNodeList consolidatedTemplateArguments, TypeNode instance)
+    private void AddInstance(List<TypeNode> consolidatedTemplateArguments, TypeNode instance)
     {
       CC.Contract.Requires(consolidatedTemplateArguments.Count == instance.ConsolidatedTemplateArguments.Count);
       CC.Contract.Requires(consolidatedTemplateArguments.Count == this.ConsolidatedTemplateParameters.Count);
@@ -9503,9 +9500,9 @@ namespace System.Compiler{
     {
       this.templateInstanceCache = new TemplateInstanceCache();
     }
-    private TypeNodeList currentlyInstantiating;
+    private List<TypeNode> currentlyInstantiating;
     //protected static Module/*!*/ cachingModuleForGenericInstances = new CachingModuleForGenericsInstances();
-    public virtual TypeNode/*!*/ GetConsolidatedTemplateInstance(Module module, TypeNode referringType, TypeNode declaringType, TypeNodeList templateArguments, TypeNodeList consolidatedTemplateArguments)
+    public virtual TypeNode/*!*/ GetConsolidatedTemplateInstance(Module module, TypeNode referringType, TypeNode declaringType, List<TypeNode> templateArguments, List<TypeNode> consolidatedTemplateArguments)
     {
       Debug.Assert(IsCompleteTemplate(this));
       Debug.Assert(this.ConsolidatedTemplateParameters.Count == consolidatedTemplateArguments.Count);
@@ -9513,7 +9510,7 @@ namespace System.Compiler{
       Debug.Assert(declaringType != null || this.DeclaringType == null);
       Debug.Assert(declaringType == null || this.DeclaringType == declaringType || this.DeclaringType == declaringType.Template);
 
-      TypeNodeList templateParameters = this.TemplateParameters;
+      List<TypeNode> templateParameters = this.TemplateParameters;
       if (module == null || (declaringType == null && (templateParameters == null || templateParameters.Count == 0)))
       {
         Debug.Assert(false);
@@ -9547,12 +9544,12 @@ namespace System.Compiler{
         return result;
       }
     }
-    public virtual TypeNode/*!*/ GetTemplateInstance(Module module, TypeNode referringType, TypeNode declaringType, TypeNodeList templateArguments) {
+    public virtual TypeNode/*!*/ GetTemplateInstance(Module module, TypeNode referringType, TypeNode declaringType, List<TypeNode> templateArguments) {
 
       return this.GetConsolidatedTemplateInstance(module, referringType, declaringType, templateArguments, templateArguments);
     }
 
-    private TypeNode BuildConsolidatedTemplateInstance(Module module, TypeNode referringType, TypeNode declaringType, TypeNodeList templateArguments, TypeNodeList consolidatedTemplateArguments)
+    private TypeNode BuildConsolidatedTemplateInstance(Module module, TypeNode referringType, TypeNode declaringType, List<TypeNode> templateArguments, List<TypeNode> consolidatedTemplateArguments)
     {
       CC.Contract.Ensures(CC.Contract.Result<TypeNode>() == null || CC.Contract.ForAll(0, templateArguments.Count, i => templateArguments[i] == CC.Contract.Result<TypeNode>().templateArguments[i]));
       CC.Contract.Ensures(CC.Contract.Result<TypeNode>() == null || CC.Contract.ForAll(0, consolidatedTemplateArguments.Count, i => consolidatedTemplateArguments[i] == CC.Contract.Result<TypeNode>().consolidatedTemplateArguments[i]));
@@ -9575,8 +9572,8 @@ namespace System.Compiler{
       if (this.IsGeneric) result.DeclaringModule = this.DeclaringModule;
       result.DeclaringType = this.IsGeneric || referringType == null ? declaringType : referringType;
       result.Template = this;
-      result.templateParameters = null;// new TypeNodeList(0);
-      result.consolidatedTemplateParameters = null;// new TypeNodeList(0);
+      result.templateParameters = null;// new List<TypeNode>(0);
+      result.consolidatedTemplateParameters = null;// new List<TypeNode>(0);
       result.templateArguments = templateArguments;
       result.consolidatedTemplateArguments = consolidatedTemplateArguments;
       //module.StructurallyEquivalentType[unusedMangledName.UniqueIdKey] = result;
@@ -9605,10 +9602,10 @@ namespace System.Compiler{
       //Debug.Assert(result.DeclaringType != null || this.DeclaringType == null);
       return result;
     }
-    protected virtual TypeNodeList GetConsolidatedTemplateArguments(){
-      TypeNodeList typeArgs = this.TemplateArguments;
+    protected virtual List<TypeNode> GetConsolidatedTemplateArguments(){
+      List<TypeNode> typeArgs = this.TemplateArguments;
       if (this.DeclaringType == null) return typeArgs;
-      TypeNodeList result = this.DeclaringType.ConsolidatedTemplateArguments;
+      List<TypeNode> result = this.DeclaringType.ConsolidatedTemplateArguments;
       if (result == null){
         if (this.DeclaringType.IsGeneric && this.DeclaringType.Template == null)
           result = this.DeclaringType.ConsolidatedTemplateParameters;
@@ -9617,12 +9614,12 @@ namespace System.Compiler{
       }
       int n = typeArgs == null ? 0 : typeArgs.Count;
       if (n == 0) return result;
-      result = result.Clone();
+      result = result.ToList();
       for (int i = 0; i < n; i++) result.Add(typeArgs[i]);
       return result;
     }
-    protected virtual TypeNodeList GetConsolidatedTemplateArguments(TypeNodeList typeArgs){
-      TypeNodeList result = this.ConsolidatedTemplateArguments;
+    protected virtual List<TypeNode> GetConsolidatedTemplateArguments(List<TypeNode> typeArgs){
+      List<TypeNode> result = this.ConsolidatedTemplateArguments;
       if (result == null || result.Count == 0){
         if (this.IsGeneric && this.Template == null)
           result = this.ConsolidatedTemplateParameters;
@@ -9632,29 +9629,29 @@ namespace System.Compiler{
       int n = typeArgs == null ? 0 : typeArgs.Count;
       if (n == 0) return result;
       //^ assert typeArgs != null;
-      result = result.Clone();
+      result = result.ToList();
       for (int i = 0; i < n; i++) result.Add(typeArgs[i]);
       return result;
     }
-    protected virtual TypeNodeList GetConsolidatedTemplateParameters(){
-      TypeNodeList typeParams = this.TemplateParameters;
+    protected virtual List<TypeNode> GetConsolidatedTemplateParameters(){
+      List<TypeNode> typeParams = this.TemplateParameters;
       TypeNode declaringType = this.DeclaringType;
       if (declaringType == null) return typeParams;
       while (declaringType.Template != null) declaringType = declaringType.Template;
-      TypeNodeList result = declaringType.ConsolidatedTemplateParameters;
+      List<TypeNode> result = declaringType.ConsolidatedTemplateParameters;
       if (result == null) return typeParams;
       int n = typeParams == null ? 0 : typeParams.Count;
       if (n == 0) return result;
-      result = result.Clone();
+      result = result.ToList();
       for (int i = 0; i < n; i++) result.Add(typeParams[i]);
       return result;
     }
-    protected virtual TypeNodeList GetOwnTemplateArguments(TypeNodeList consolidatedTemplateArguments){
+    protected virtual List<TypeNode> GetOwnTemplateArguments(List<TypeNode> consolidatedTemplateArguments){
       int n = this.TemplateParameters == null ? 0 : this.TemplateParameters.Count;
       int m = consolidatedTemplateArguments == null ? 0 : consolidatedTemplateArguments.Count;
       int k = m-n;
       if (k <= 0) return consolidatedTemplateArguments;
-      TypeNodeList result = new TypeNodeList(n);
+      List<TypeNode> result = new List<TypeNode>(n);
       if (consolidatedTemplateArguments != null)
         for (int i = 0; i < n; i++)
           result.Add(consolidatedTemplateArguments[i+k]);
@@ -9705,21 +9702,21 @@ namespace System.Compiler{
     /// Returns a list of all the members declared directly by this type with the specified name.
     /// Returns an empty list if this type has no such members.
     /// </summary>
-    public virtual MemberList/*!*/ GetMembersNamed(Identifier name) {
+    public virtual List<Member>/*!*/ GetMembersNamed(Identifier name) {
 #if CodeContracts
-      CC.Contract.Ensures(CC.Contract.Result<MemberList>() != null);
+      CC.Contract.Ensures(CC.Contract.Result<List<Member>>() != null);
 #endif
-      if (name == null) return new MemberList(0);
-      MemberList members = this.Members;
+      if (name == null) return new List<Member>(0);
+      List<Member> members = this.Members;
       int n = members == null ? 0 : members.Count;
       if (n != this.memberCount || this.memberTable == null) this.UpdateMemberTable(n);
       //^ assert this.memberTable != null;
-      MemberList result = (MemberList)this.memberTable[name.UniqueIdKey];
+      List<Member> result = (List<Member>)this.memberTable[name.UniqueIdKey];
       if (result == null){
         lock(this){
-          result = (MemberList)this.memberTable[name.UniqueIdKey];
+          result = (List<Member>)this.memberTable[name.UniqueIdKey];
           if (result != null) return result;
-          this.memberTable[name.UniqueIdKey] = (result = new MemberList());
+          this.memberTable[name.UniqueIdKey] = (result = new List<Member>());
         }
       }
       return result;
@@ -9729,7 +9726,7 @@ namespace System.Compiler{
     /// Returns null if this type has no such event.
     /// </summary>
     public virtual Event GetEvent(Identifier name){
-      MemberList members = this.GetMembersNamed(name);
+      List<Member> members = this.GetMembersNamed(name);
       for (int i = 0, n = members.Count; i < n; i++){
         Event ev = members[i] as Event;
         if (ev != null) return ev;
@@ -9740,7 +9737,7 @@ namespace System.Compiler{
     /// Returns the first field declared by this type with the specified name. Returns null if this type has no such field.
     /// </summary>
     public virtual Field GetField(Identifier name){
-      MemberList members = this.GetMembersNamed(name);
+      List<Member> members = this.GetMembersNamed(name);
       for (int i = 0, n = members.Count; i < n; i++){
         Field field = members[i] as Field;
         if (field != null) return field;
@@ -9754,10 +9751,10 @@ namespace System.Compiler{
     public virtual Method GetMethod(Identifier name, params TypeNode[] types){
       return GetFirstMethod(this.GetMembersNamed(name), types);
     }
-    private static Method GetFirstMethod(MemberList members, params TypeNode[] types){
+    private static Method GetFirstMethod(List<Member> members, params TypeNode[] types){
       if (members == null) return null;
       int m = types == null ? 0 : types.Length;
-      TypeNodeList typeNodes = m == 0 ? null : new TypeNodeList(types);
+      List<TypeNode> typeNodes = m == 0 ? null : new List<TypeNode>(types);
       for (int i = 0, n = members.Count; i < n; i++){
         Method meth = members[i] as Method;
         if (meth == null) continue;
@@ -9765,14 +9762,14 @@ namespace System.Compiler{
       }
       return null;
     }
-    public virtual MethodList GetMethods(Identifier name, params TypeNode[] types) {
+    public virtual List<Method> GetMethods(Identifier name, params TypeNode[] types) {
       return GetMethods(this.GetMembersNamed(name), types);
     }
-    private static MethodList GetMethods(MemberList members, params TypeNode[] types) {
+    private static List<Method> GetMethods(List<Member> members, params TypeNode[] types) {
       if (members == null) return null;
       int m = types == null ? 0 : types.Length;
-      MethodList result = new MethodList();
-      TypeNodeList typeNodes = m == 0 ? null : new TypeNodeList(types);
+      List<Method> result = new List<Method>();
+      List<TypeNode> typeNodes = m == 0 ? null : new List<TypeNode>(types);
       for (int i = 0, n = members.Count; i < n; i++) {
         Method meth = members[i] as Method;
         if (meth == null) continue;
@@ -9782,7 +9779,7 @@ namespace System.Compiler{
     }
     public Method GetMatchingMethod(Method method) {
       if (method == null || method.Name == null) return null;
-      MemberList members = this.GetMembersNamed(method.Name);
+      List<Member> members = this.GetMembersNamed(method.Name);
       for (int i = 0, n = members == null ? 0 : members.Count; i < n; i++){
         Method m = members[i] as Method;
         if (m == null) continue;
@@ -9794,7 +9791,7 @@ namespace System.Compiler{
     {
         if (method == null || method.Name == null) return null;
         var methodTPcount = (method.TemplateParameters == null) ? 0 : method.TemplateParameters.Count;
-        MemberList members = this.GetMembersNamed(method.Name);
+        List<Member> members = this.GetMembersNamed(method.Name);
         for (int i = 0, n = members == null ? 0 : members.Count; i < n; i++)
         {
             Method m = members[i] as Method;
@@ -9816,22 +9813,22 @@ namespace System.Compiler{
         throw new InvalidOperationException();
       }
       if (this.members != null){
-        MemberList members = this.GetMembersNamed(name);
+        List<Member> members = this.GetMembersNamed(name);
         for (int i = 0, n = members.Count; i < n; i++){
           TypeNode type = members[i] as TypeNode;
           if (type != null) return type;
         }
         return null;
       }
-      TypeNodeList nestedTypes = this.NestedTypes;
+      List<TypeNode> nestedTypes = this.NestedTypes;
       for (int i = 0, n = nestedTypes == null ? 0 : nestedTypes.Count; i < n; i++) {
         TypeNode type = nestedTypes[i];
         if (type != null && type.Name.UniqueIdKey == name.UniqueIdKey) return type;
       }
       return null;
     }
-    protected internal TypeNodeList nestedTypes;
-    public virtual TypeNodeList NestedTypes{
+    protected internal List<TypeNode> nestedTypes;
+    public virtual List<TypeNode> NestedTypes{
       get{
         if (this.nestedTypes != null && (this.members == null || this.members.Count == this.memberCount))
           return this.nestedTypes;
@@ -9840,8 +9837,8 @@ namespace System.Compiler{
             this.ProvideNestedTypes(this, this.ProviderHandle);
           }
         }else{
-          MemberList members = this.Members;
-          TypeNodeList nestedTypes = new TypeNodeList();
+          List<Member> members = this.Members;
+          List<TypeNode> nestedTypes = new List<TypeNode>();
           for (int i = 0, n = members == null ? 0 : members.Count; i < n; i++){
             TypeNode nt = members[i] as TypeNode;
             if (nt == null) continue;
@@ -9861,10 +9858,10 @@ namespace System.Compiler{
     public virtual Property GetProperty(Identifier name, params TypeNode[] types){
       return GetProperty(this.GetMembersNamed(name), types);
     }
-    private static Property GetProperty(MemberList members, params TypeNode[] types){
+    private static Property GetProperty(List<Member> members, params TypeNode[] types){
       if (members == null) return null;
       int m = types == null ? 0 : types.Length;
-      TypeNodeList typeNodes = m == 0 ? null : new TypeNodeList(types);
+      List<TypeNode> typeNodes = m == 0 ? null : new List<TypeNode>(types);
       for (int i = 0, n = members.Count; i < n; i++){
         Property prop = members[i] as Property;
         if (prop == null) continue;
@@ -9873,8 +9870,8 @@ namespace System.Compiler{
       return null;
     }
 #if !MinimalReader
-    protected internal MemberList explicitCoercionMethods;
-    public virtual MemberList ExplicitCoercionMethods{
+    protected internal List<Member> explicitCoercionMethods;
+    public virtual List<Member> ExplicitCoercionMethods{
       get{
         if (this.Members.Count != this.memberCount) this.explicitCoercionMethods = null;
         if (this.explicitCoercionMethods != null) return this.explicitCoercionMethods;
@@ -9884,8 +9881,8 @@ namespace System.Compiler{
         }
       }
     }
-    protected internal MemberList implicitCoercionMethods;
-    public virtual MemberList ImplicitCoercionMethods{
+    protected internal List<Member> implicitCoercionMethods;
+    public virtual List<Member> ImplicitCoercionMethods{
       get{
         if (this.Members.Count != this.memberCount) this.implicitCoercionMethods = null;
         if (this.implicitCoercionMethods != null) return this.implicitCoercionMethods;
@@ -9910,7 +9907,7 @@ namespace System.Compiler{
           result = (Method)this.explicitCoercionFromTable[sourceType.UniqueKey];
         if (result == TypeNode.MethodDoesNotExist) return null; 
         if (result != null) return result;
-        MemberList coercions = this.ExplicitCoercionMethods;
+        List<Member> coercions = this.ExplicitCoercionMethods;
         for (int i = 0, n = coercions.Count; i < n; i++){
           Method m = (Method)coercions[i];
           if (sourceType == m.Parameters[0].Type){result = m; break;}
@@ -9937,7 +9934,7 @@ namespace System.Compiler{
           result = (Method)this.explicitCoercionToTable[targetType.UniqueKey];
         if (result == TypeNode.MethodDoesNotExist) return null; 
         if (result != null) return result;
-        MemberList coercions = this.ExplicitCoercionMethods;
+        List<Member> coercions = this.ExplicitCoercionMethods;
         for (int i = 0, n = coercions.Count; i < n; i++){
           Method m = (Method)coercions[i];
           if (m.ReturnType == targetType){result = m; break;}
@@ -9964,7 +9961,7 @@ namespace System.Compiler{
           result = (Method)this.implicitCoercionFromTable[sourceType.UniqueKey];
         if (result == TypeNode.MethodDoesNotExist) return null; 
         if (result != null) return result;
-        MemberList coercions = this.ImplicitCoercionMethods;
+        List<Member> coercions = this.ImplicitCoercionMethods;
         for (int i = 0, n = coercions.Count; i < n; i++){
           Method m = (Method)coercions[i];
           if (sourceType.IsStructurallyEquivalentTo(TypeNode.StripModifiers(m.Parameters[0].Type))){result = m; break;}
@@ -9991,7 +9988,7 @@ namespace System.Compiler{
           result = (Method)this.implicitCoercionToTable[targetType.UniqueKey];
         if (result == TypeNode.MethodDoesNotExist) return null; 
         if (result != null) return result;
-        MemberList coercions = this.ImplicitCoercionMethods;
+        List<Member> coercions = this.ImplicitCoercionMethods;
         for (int i = 0, n = coercions.Count; i < n; i++){
           Method m = (Method)coercions[i];
           if (m.ReturnType == targetType){result = m; break;}
@@ -10010,7 +10007,7 @@ namespace System.Compiler{
       Method result = this.opFalse;
       if (result == TypeNode.MethodDoesNotExist) return null;
       if (result != null) return result;
-      MemberList members = this.Members; //evaluate for side effect
+      List<Member> members = this.Members; //evaluate for side effect
       if (members != null) members = null;
       lock(this){
         result = this.opFalse;
@@ -10018,7 +10015,7 @@ namespace System.Compiler{
         if (result != null) return result;
         TypeNode t = this;
         while (t != null){
-          MemberList opFalses = t.GetMembersNamed(StandardIds.opFalse);
+          List<Member> opFalses = t.GetMembersNamed(StandardIds.opFalse);
           if (opFalses != null)
             for (int i = 0, n = opFalses.Count; i < n; i++){
               Method opFalse = opFalses[i] as Method;
@@ -10038,7 +10035,7 @@ namespace System.Compiler{
       Method result = this.opTrue;
       if (result == TypeNode.MethodDoesNotExist) return null;
       if (result != null) return result;
-      MemberList members = this.Members; //evaluate for side effect
+      List<Member> members = this.Members; //evaluate for side effect
       if (members != null) members = null;
       lock(this){
         result = this.opTrue;
@@ -10046,7 +10043,7 @@ namespace System.Compiler{
         if (result != null) return result;
         TypeNode t = this;
         while (t != null){
-          MemberList opTrues = t.GetMembersNamed(StandardIds.opTrue);
+          List<Member> opTrues = t.GetMembersNamed(StandardIds.opTrue);
           if (opTrues != null)
             for (int i = 0, n = opTrues.Count; i < n; i++){
               Method opTrue = opTrues[i] as Method;
@@ -10085,7 +10082,7 @@ namespace System.Compiler{
         try{
           TypeNode template = TypeNode.GetTypeNode(type.GetGenericTypeDefinition());
           if (template == null) return null;
-          TypeNodeList templateArguments = new TypeNodeList();
+          List<TypeNode> templateArguments = new List<TypeNode>();
           foreach (Type arg in type.GetGenericArguments())
             templateArguments.Add(TypeNode.GetTypeNode(arg));
           return template.GetGenericTemplateInstance(template.DeclaringModule, templateArguments);
@@ -10164,7 +10161,7 @@ namespace System.Compiler{
                 rootTemplate = rootTemplate.Template;
               Type genType = rootTemplate.GetRuntimeType();
               if (genType == null) return null;
-              TypeNodeList args = this.ConsolidatedTemplateArguments;
+              List<TypeNode> args = this.ConsolidatedTemplateArguments;
               Type[] arguments = new Type[args.Count];
               for (int i = 0; i < args.Count; i++) arguments[i] = args[i].GetRuntimeType();
               return genType.MakeGenericType(arguments);
@@ -10247,14 +10244,14 @@ namespace System.Compiler{
       if (method == null) return false;
       TrivialHashtable explicitInterfaceImplementations = this.explicitInterfaceImplementations;
       if (explicitInterfaceImplementations == null){
-        MemberList members = this.Members;
+        List<Member> members = this.Members;
         lock(this){
           if ((explicitInterfaceImplementations = this.explicitInterfaceImplementations) == null){
             explicitInterfaceImplementations = this.explicitInterfaceImplementations = new TrivialHashtable();
             for (int i = 0, n = members.Count; i < n; i++){
               Method m = members[i] as Method;
               if (m == null) continue;
-              MethodList implementedInterfaceMethods = m.ImplementedInterfaceMethods;
+              List<Method> implementedInterfaceMethods = m.ImplementedInterfaceMethods;
               if (implementedInterfaceMethods != null)
                 for (int j = 0, k = implementedInterfaceMethods.Count; j < k; j++){
                   Method im = implementedInterfaceMethods[j];
@@ -10280,7 +10277,7 @@ namespace System.Compiler{
     }
     public Method GetImplementingMethod(Method meth, bool checkPublic){
       if (meth == null) return null;
-      MemberList mems = this.GetMembersNamed(meth.Name);
+      List<Member> mems = this.GetMembersNamed(meth.Name);
       for (int j = 0, m = mems == null ? 0 : mems.Count; j < m; j++){
         Method locM = mems[j] as Method;
         if (locM == null || !locM.IsVirtual || (checkPublic && !locM.IsPublic)) continue;
@@ -10335,7 +10332,7 @@ namespace System.Compiler{
      tryMore:
       if (this.BaseType != null && this.ConsolidatedTemplateParameters != null && this.BaseType.Template != null && this.BaseType.Template.IsAssignableTo(targetType))
         return true; //When seeing if one template is assignable to another, be sure to strip off template instances along the inheritance chain
-      InterfaceList interfaces = this.Interfaces;
+      var interfaces = this.Interfaces;
       if (interfaces == null) return false;
       for (int i = 0, n = interfaces.Count; i < n; i++){
         Interface iface = interfaces[i];
@@ -10354,7 +10351,7 @@ namespace System.Compiler{
       if (targetTemplate.IsStructurallyEquivalentTo(this.Template == null ? this : this.Template) || 
         this.BaseType != null && (this.BaseType.IsAssignableToInstanceOf(targetTemplate) ||
         this.BaseType.Template != null && this.BaseType.Template.IsAssignableToInstanceOf(targetTemplate))) return true;
-      InterfaceList interfaces = this.Interfaces;
+      var interfaces = this.Interfaces;
       if (interfaces == null) return false;
       for (int i = 0, n = interfaces.Count; i < n; i++) {
         Interface iface = interfaces[i];
@@ -10366,7 +10363,7 @@ namespace System.Compiler{
     /// <summary>
     /// Returns true if this type is assignable to some instance of the given template.
     /// </summary>
-    public virtual bool IsAssignableToInstanceOf(TypeNode targetTemplate, out TypeNodeList templateArguments){
+    public virtual bool IsAssignableToInstanceOf(TypeNode targetTemplate, out List<TypeNode> templateArguments){
       templateArguments = null;
       if (this == CoreSystemTypes.Void || targetTemplate == null) return false;
       if (targetTemplate == this.Template){
@@ -10374,7 +10371,7 @@ namespace System.Compiler{
         return true;
       }
       if (this != CoreSystemTypes.Object && this.BaseType != null && this.BaseType.IsAssignableToInstanceOf(targetTemplate, out templateArguments)) return true;
-      InterfaceList interfaces = this.Interfaces;
+      var interfaces = this.Interfaces;
       if (interfaces == null) return false;
       for (int i = 0, n = interfaces.Count; i < n; i++) {
         Interface iface = interfaces[i];
@@ -10417,7 +10414,7 @@ namespace System.Compiler{
         result = true;
         goto done;
       }
-      InterfaceList interfaces = this.Interfaces;
+      var interfaces = this.Interfaces;
       if (interfaces == null) goto done;
       for (int i = 0, n = interfaces.Count; i < n; i++) {
         Interface iface = interfaces[i];
@@ -10463,7 +10460,7 @@ namespace System.Compiler{
         return this.DeclaringType.IsStructurallyEquivalentTo(type.DeclaringType);
       return true;
     }
-    public virtual bool IsStructurallyEquivalentList(TypeNodeList list1, TypeNodeList list2, Func<TypeNode,TypeNode> typeSubstitution = null){
+    public virtual bool IsStructurallyEquivalentList(List<TypeNode> list1, List<TypeNode> list2, Func<TypeNode,TypeNode> typeSubstitution = null){
       if (list1 == null) return list2 == null;
       if (list2 == null) return false;
       int n = list1.Count; if (list2.Count != n) return false;
@@ -10555,12 +10552,12 @@ namespace System.Compiler{
       }
       // strip template arguments
       if (type.Template != null && type.TemplateArguments != null && type.TemplateArguments.Count > 0) {
-        TypeNodeList strippedArgs = new TypeNodeList(type.TemplateArguments.Count);
+        List<TypeNode> strippedArgs = new List<TypeNode>(type.TemplateArguments.Count);
         for (int i = 0; i < type.TemplateArguments.Count; i++) {
           //FIX: bug introduced by checkin 16494 
           //templateType may have type parameters in either the TemplateArguments position or the templateParameters position.
           //This may indicate an inconsistency in the template instantiation representation elsewhere.
-          TypeNodeList templateTypeArgs = templateType.TemplateArguments != null ? templateType.TemplateArguments : templateType.TemplateParameters;
+          List<TypeNode> templateTypeArgs = templateType.TemplateArguments != null ? templateType.TemplateArguments : templateType.TemplateParameters;
           strippedArgs.Add(DeepStripModifiers(type.TemplateArguments[i], templateTypeArgs[i], modifiers));
         }
         return type.Template.GetTemplateInstance(type, strippedArgs);
@@ -10605,7 +10602,7 @@ namespace System.Compiler{
       }
       // strip template arguments
       if (type.Template != null && type.TemplateArguments != null && type.TemplateArguments.Count > 0) {
-        TypeNodeList strippedArgs = new TypeNodeList(type.TemplateArguments.Count);
+        List<TypeNode> strippedArgs = new List<TypeNode>(type.TemplateArguments.Count);
         for (int i = 0; i < type.TemplateArguments.Count; i++) {
           strippedArgs.Add(DeepStripModifiers(type.TemplateArguments[i], modifiers));
         }
@@ -10653,21 +10650,21 @@ namespace System.Compiler{
     protected virtual void UpdateMemberTable(int range)
       //^ ensures this.memberTable != null;
     {
-      MemberList thisMembers = this.Members;
+      List<Member> thisMembers = this.Members;
       lock(this){
         if (this.memberTable == null) this.memberTable = new TrivialHashtable(32);
         for (int i = this.memberCount; i < range; i++){
           Member mem = thisMembers[i];
           if (mem == null || mem.Name == null) continue;
-          MemberList members = (MemberList)this.memberTable[mem.Name.UniqueIdKey];
-          if (members == null) this.memberTable[mem.Name.UniqueIdKey] = members = new MemberList(2);
+          List<Member> members = (List<Member>)this.memberTable[mem.Name.UniqueIdKey];
+          if (members == null) this.memberTable[mem.Name.UniqueIdKey] = members = new List<Member>(2);
           members.Add(mem);
         }
         this.memberCount = range;
         this.constructors = null;
       }
     }
-    protected static MemberList WeedOutNonSpecialMethods(MemberList members, MethodFlags mask){
+    protected static List<Member> WeedOutNonSpecialMethods(List<Member> members, MethodFlags mask){
       if (members == null) return null;
       bool membersOK = true;
       for (int i = 0, n = members.Count; i < n; i++){
@@ -10677,7 +10674,7 @@ namespace System.Compiler{
         }
       }
       if (membersOK) return members;
-      MemberList newMembers = new MemberList();
+      List<Member> newMembers = new List<Member>();
       for (int i = 0, n = members.Count; i < n; i++){
         Method m = members[i] as Method;
         if (m == null || (m.Flags & mask) == 0) continue;
@@ -10688,7 +10685,7 @@ namespace System.Compiler{
 #if !NoXml
     public override void WriteDocumentation(XmlTextWriter xwriter){
       base.WriteDocumentation(xwriter);
-      MemberList members = this.Members;
+      List<Member> members = this.Members;
       for (int i = 0, n = members == null ? 0 : members.Count; i < n; i++){
         Member mem = members[i];
         if (mem == null) continue;
@@ -10750,7 +10747,7 @@ namespace System.Compiler{
           shortName = shortName.Substring(0, mangleChar);
         name.Append(shortName);
       }
-      TypeNodeList templateParameters = this.TemplateParameters;
+      List<TypeNode> templateParameters = this.TemplateParameters;
       if (this.Template != null) templateParameters = this.TemplateArguments;
       if (templateParameters != null)
       {
@@ -10807,8 +10804,8 @@ namespace System.Compiler{
     }
 #endif
 #if !MinimalReader    
-    public Class(Module declaringModule, TypeNode declaringType, AttributeList attributes, TypeFlags flags,
-      Identifier Namespace, Identifier name, Class baseClass, InterfaceList interfaces, MemberList members)
+    public Class(Module declaringModule, TypeNode declaringType, List<AttributeNode> attributes, TypeFlags flags,
+      Identifier Namespace, Identifier name, Class baseClass, List<Interface> interfaces, List<Member> members)
       : base(declaringModule, declaringType, attributes, flags, Namespace, name, interfaces, members, NodeType.Class){
       this.baseClass = baseClass;
     }
@@ -10828,9 +10825,9 @@ namespace System.Compiler{
       }
     }
 #if !MinimalReader
-    public override void GetAbstractMethods(MethodList/*!*/ result) {
+    public override void GetAbstractMethods(List<Method>/*!*/ result) {
       if (!this.IsAbstract) return;
-      MethodList candidates = new MethodList();
+      List<Method> candidates = new List<Method>();
       if (this.BaseClass != null){
         this.BaseClass.GetAbstractMethods(candidates);
         for (int i = 0, n = candidates.Count; i < n; i++){
@@ -10839,19 +10836,19 @@ namespace System.Compiler{
         }
       }
       //Add any abstract methods declared inside this class
-      MemberList members = this.Members;
+      List<Member> members = this.Members;
       for (int i = 0, n = members.Count; i < n; i++){
         Method meth = members[i] as Method;
         if (meth == null) continue;
         if (meth.IsAbstract) result.Add(meth);
       }
       //For each interface, get abstract methods and keep those that are not implemented by this class or a base class
-      InterfaceList interfaces = this.Interfaces;
+      var interfaces = this.Interfaces;
       if (interfaces != null)
         for (int i = 0, n = interfaces.Count; i < n; i++){
           Interface iface = interfaces[i];
           if (iface == null) continue;
-          MemberList imembers = iface.Members;
+          List<Member> imembers = iface.Members;
           if (imembers == null) continue;
           for (int j = 0, m = imembers.Count; j < m; j++){
             Method meth = imembers[j] as Method;
@@ -10863,7 +10860,7 @@ namespace System.Compiler{
           }
         }
     }
-    protected static bool AlreadyInList(MethodList list, Method method){
+    protected static bool AlreadyInList(List<Method> list, Method method){
       if (list == null) return false;
       for (int i = 0, n = list.Count; i < n; i++){
         if (list[i] == method) return true;
@@ -10923,18 +10920,18 @@ namespace System.Compiler{
       if (type != null)
         this.LexicalSourceExtent = type.SourceContext;
     }
-    public override MemberList/*!*/ GetMembersNamed(Identifier name) {
+    public override List<Member>/*!*/ GetMembersNamed(Identifier name) {
       TypeNode t = this.Type;
-      MemberList result = null;
+      List<Member> result = null;
       while (t != null){
         result = t.GetMembersNamed(name);
         if (result.Count > 0) return result;
         t = t.BaseType;
       }
       if (result != null) return result;
-      return new MemberList(0);
+      return new List<Member>(0);
     }
-    public override MemberList Members{
+    public override List<Member> Members{
       get{
         return this.Type.Members;
       }
@@ -10968,7 +10965,7 @@ namespace System.Compiler{
           c.IsGeneric = c.DeclaringType.IsGeneric || this.DeclaringMethod.IsGeneric;
           c.TemplateParameters = this.CopyMethodTemplateParameters(c.DeclaringModule, c.DeclaringType);
           c.Flags = TypeFlags.NestedPrivate|TypeFlags.SpecialName|TypeFlags.Sealed;
-          c.Interfaces = new InterfaceList(0);
+          c.Interfaces = new List<Interface>(0);
           if (this.ThisType != null){
             Field f = new Field(c, null, FieldFlags.CompilerControlled | FieldFlags.SpecialName, StandardIds.ThisValue, this.ThisType, null);
             this.ThisField = f;
@@ -10978,10 +10975,10 @@ namespace System.Compiler{
         return c;
       }
     }
-    private TypeNodeList CopyMethodTemplateParameters(Module/*!*/ module, TypeNode/*!*/ type) 
+    private List<TypeNode> CopyMethodTemplateParameters(Module/*!*/ module, TypeNode/*!*/ type) 
       //^ requires this.DeclaringMethod != null;
     {
-      TypeNodeList methTemplParams = this.DeclaringMethod.TemplateParameters;
+      List<TypeNode> methTemplParams = this.DeclaringMethod.TemplateParameters;
       if (methTemplParams == null || methTemplParams.Count == 0) return null;
       this.tpDup = new TemplateParameterDuplicator(module, type);
       return this.tpDup.VisitTypeParameterList(methTemplParams);
@@ -11215,7 +11212,7 @@ namespace System.Compiler{
       }
       // If an inner type shadows an outer namespace, don't return the namespace
       if (this.AssociatedModule.IsValidTypeName(this.AssociatedNamespace.Name, name)) { return null; }
-      AssemblyReferenceList arefs = this.AssociatedModule.AssemblyReferences;
+      List<AssemblyReference> arefs = this.AssociatedModule.AssemblyReferences;
       for (int i = 0, n = arefs == null ? 0 : arefs.Count; i < n; i++){
         AssemblyReference ar = arefs[i];
         if (ar == null || ar.Assembly == null) continue;
@@ -11223,7 +11220,7 @@ namespace System.Compiler{
         // If an inner type shadows an outer namespace, don't return the namespace
         if (ar.Assembly.IsValidTypeName(this.AssociatedNamespace.Name, name)) { return null; }
       }
-      ModuleReferenceList mrefs = this.AssociatedModule.ModuleReferences;
+      List<ModuleReference> mrefs = this.AssociatedModule.ModuleReferences;
       if (mrefs != null)
         for (int i = 0, n = mrefs.Count; i < n; i++){
           ModuleReference mr = mrefs[i];
@@ -11244,7 +11241,7 @@ namespace System.Compiler{
     /// Search this namespace for a type with this name nested in the given namespace. Also considers used name spaces.
     /// If more than one type is found, a list is returned in duplicates.
     /// </summary>
-    public virtual TypeNode GetType(Identifier Namespace, Identifier name, out TypeNodeList duplicates){
+    public virtual TypeNode GetType(Identifier Namespace, Identifier name, out List<TypeNode> duplicates){
       duplicates = null;
       if (Namespace == null || name == null || this.AssociatedNamespace == null || this.AssociatedModule == null){
         Debug.Assert(false); return null;
@@ -11273,7 +11270,7 @@ namespace System.Compiler{
       }
       if (result == null){
         //Now get into situations where there might be duplicates.
-        duplicates = new TypeNodeList();
+        duplicates = new List<TypeNode>();
         //Check the used namespaces of this and outer namespace scopes
         TrivialHashtable alreadyUsed = new TrivialHashtable();
         scope = this;
@@ -11320,7 +11317,7 @@ namespace System.Compiler{
           scope = scope.OuterScope;
         }
         if (numDups == 0){
-          if (duplicates.Count > 0) duplicates = new TypeNodeList();
+          if (duplicates.Count > 0) duplicates = new List<TypeNode>();
           //Check the used namespaces of this and outer namespace scopes
           TrivialHashtable alreadyUsed = new TrivialHashtable();
           scope = this;
@@ -11363,10 +11360,10 @@ namespace System.Compiler{
     /// module mask types defined in referenced modules and assemblies. Results are cached and duplicates are returned only when
     /// there is a cache miss.
     /// </summary>
-    public virtual TypeNode GetType(Identifier name, out TypeNodeList duplicates){
+    public virtual TypeNode GetType(Identifier name, out List<TypeNode> duplicates){
       return this.GetType(name, out duplicates, false);
     }
-    public virtual TypeNode GetType(Identifier name, out TypeNodeList duplicates, bool returnNullIfHiddenByNestedNamespace){
+    public virtual TypeNode GetType(Identifier name, out List<TypeNode> duplicates, bool returnNullIfHiddenByNestedNamespace){
       duplicates = null;
       if (name == null || this.typeFor == null || this.AssociatedNamespace == null || this.AssociatedModule == null){
         Debug.Assert(false); return null;
@@ -11400,7 +11397,7 @@ namespace System.Compiler{
       }
       if (result == null){
         //Now get into situations where there might be duplicates.
-        duplicates = new TypeNodeList();
+        duplicates = new List<TypeNode>();
         //Check the used namespaces of this and outer namespace scopes
         TrivialHashtable alreadyUsed = new TrivialHashtable();
         Scope scope = this;
@@ -11449,7 +11446,7 @@ namespace System.Compiler{
           }
         }
         if (numDups == 0){
-          if (duplicates.Count > 0) duplicates = new TypeNodeList();
+          if (duplicates.Count > 0) duplicates = new List<TypeNode>();
           //Check the used namespaces of this and outer namespace scopes
           TrivialHashtable alreadyUsed = new TrivialHashtable();
           Scope scope = this;
@@ -11481,7 +11478,7 @@ namespace System.Compiler{
           }
         }
         if (numDups == 0){
-          if (duplicates.Count > 0) duplicates = new TypeNodeList();
+          if (duplicates.Count > 0) duplicates = new List<TypeNode>();
           this.GetReferencedTypes(Identifier.Empty, name, duplicates);
           numDups = duplicates.Count;
           for (int i = numDups-1; i >= 0; i--){
@@ -11527,9 +11524,9 @@ namespace System.Compiler{
     /// <summary>
     /// Searches the module and assembly references of the associated module to find types
     /// </summary>
-    public virtual void GetReferencedTypes(Identifier Namespace, Identifier name, TypeNodeList types){
+    public virtual void GetReferencedTypes(Identifier Namespace, Identifier name, List<TypeNode> types){
       if (Namespace == null || name == null || types == null || this.AssociatedModule == null) {Debug.Assert(false); return;}
-      AssemblyReferenceList arefs = this.AssociatedModule.AssemblyReferences;
+      List<AssemblyReference> arefs = this.AssociatedModule.AssemblyReferences;
       for (int i = 0, n = arefs == null ? 0 : arefs.Count; i < n; i++){
         AssemblyReference ar = arefs[i];
         if (ar == null || ar.Assembly == null) continue;
@@ -11538,7 +11535,7 @@ namespace System.Compiler{
         //TODO: deal with type forwarding
         types.Add(t);
       }
-      ModuleReferenceList mrefs = this.AssociatedModule.ModuleReferences;
+      List<ModuleReference> mrefs = this.AssociatedModule.ModuleReferences;
       if (mrefs != null)
         for (int i = 0, n = mrefs.Count; i < n; i++){
           ModuleReference mr = mrefs[i];
@@ -11552,16 +11549,16 @@ namespace System.Compiler{
 #endif
   public class DelegateNode : TypeNode{
     internal static readonly DelegateNode/*!*/ Dummy = new DelegateNode();
-    protected ParameterList parameters;
-    public virtual ParameterList Parameters{
+    protected List<Parameter> parameters;
+    public virtual List<Parameter> Parameters{
       get{
-        ParameterList pList = this.parameters;
+        List<Parameter> pList = this.parameters;
         if (pList == null){
-          MemberList members = this.Members; //Evaluate for side effect
+          List<Member> members = this.Members; //Evaluate for side effect
           if (members != null) members = null;
           lock(this){
             if (this.parameters != null) return this.parameters;
-            MemberList invokers = this.GetMembersNamed(StandardIds.Invoke);
+            List<Member> invokers = this.GetMembersNamed(StandardIds.Invoke);
             for (int i = 0, n = invokers.Count; i < n; i++){
               Method m = invokers[i] as Method;
               if (m == null) continue;
@@ -11582,7 +11579,7 @@ namespace System.Compiler{
       get{
         TypeNode rt = this.returnType;
         if (rt == null){
-          ParameterList pars = this.Parameters; //Evaluate for side effect
+          List<Parameter> pars = this.Parameters; //Evaluate for side effect
           if (pars != null) pars = null;
           rt = this.returnType;
         }
@@ -11602,8 +11599,8 @@ namespace System.Compiler{
       : base(NodeType.DelegateNode, provideNestedTypes, provideAttributes, provideMembers, handle){
     }
 #if !MinimalReader
-    public DelegateNode(Module declaringModule, TypeNode declaringType, AttributeList attributes, TypeFlags flags,
-      Identifier Namespace, Identifier name, TypeNode returnType, ParameterList parameters)
+    public DelegateNode(Module declaringModule, TypeNode declaringType, List<AttributeNode> attributes, TypeFlags flags,
+      Identifier Namespace, Identifier name, TypeNode returnType, List<Parameter> parameters)
       : base(declaringModule, declaringType, attributes, flags, Namespace, name, null, null, NodeType.DelegateNode){
       this.parameters = parameters;
       this.returnType = returnType;
@@ -11613,9 +11610,9 @@ namespace System.Compiler{
       if (this.membersAlreadyProvided) return;
       this.membersAlreadyProvided = true;
       this.memberCount = 0;
-      MemberList members = this.members = new MemberList();
+      List<Member> members = this.members = new List<Member>();
       //ctor
-      ParameterList parameters = new ParameterList(2);
+      List<Parameter> parameters = new List<Parameter>(2);
       parameters.Add(new Parameter(null, ParameterFlags.None, StandardIds.Object, CoreSystemTypes.Object, null, null));
       parameters.Add(new Parameter(null, ParameterFlags.None, StandardIds.Method, CoreSystemTypes.IntPtr, null, null));
       InstanceInitializer ctor = new InstanceInitializer(this, null, parameters, null);
@@ -11633,9 +11630,9 @@ namespace System.Compiler{
       if (SystemTypes.AsyncCallback.ReturnType != null)
       {
         //BeginInvoke
-        ParameterList dparams = this.parameters;
+        List<Parameter> dparams = this.parameters;
         int n = dparams == null ? 0 : dparams.Count;
-        parameters = new ParameterList(n + 2);
+        parameters = new List<Parameter>(n + 2);
         for (int i = 0; i < n; i++)
         {
           //^ assert dparams != null;
@@ -11651,7 +11648,7 @@ namespace System.Compiler{
         beginInvoke.ImplFlags = MethodImplFlags.Runtime;
         members.Add(beginInvoke);
         //EndInvoke
-        parameters = new ParameterList(1);
+        parameters = new List<Parameter>(1);
         for (int i = 0; i < n; i++)
         {
           Parameter p = dparams[i];
@@ -11666,7 +11663,7 @@ namespace System.Compiler{
         members.Add(endInvoke);
       }
       if (!this.IsGeneric){
-        TypeNodeList templPars = this.TemplateParameters;
+        List<TypeNode> templPars = this.TemplateParameters;
         for (int i = 0, m = templPars == null ? 0 : templPars.Count; i < m; i++){
           //^ assert templPars != null;
           TypeNode tpar = templPars[i];
@@ -11679,14 +11676,14 @@ namespace System.Compiler{
   }
 #if !MinimalReader
   public class FunctionType : DelegateNode{
-    private FunctionType(Identifier name, TypeNode returnType, ParameterList parameters){
+    private FunctionType(Identifier name, TypeNode returnType, List<Parameter> parameters){
       this.Flags = TypeFlags.Public|TypeFlags.Sealed;
       this.Namespace = StandardIds.StructuralTypes;
       this.Name = name;
       this.returnType = returnType;
       this.parameters = parameters;
     }
-    public static FunctionType For(TypeNode returnType, ParameterList parameters, TypeNode referringType){
+    public static FunctionType For(TypeNode returnType, List<Parameter> parameters, TypeNode referringType){
       if (returnType == null || referringType == null) return null;
       Module module = referringType.DeclaringModule;
       if (module == null) return null;
@@ -11714,7 +11711,7 @@ namespace System.Compiler{
         bool goodMatch = func != null && func.ReturnType == returnType;
         if (goodMatch){
           //^ assert func != null;
-          ParameterList fpars = func.Parameters;
+          List<Parameter> fpars = func.Parameters;
           int m = fpars == null ? 0 : fpars.Count;
           goodMatch = n == m;
           if (parameters != null && fpars != null)
@@ -11730,7 +11727,7 @@ namespace System.Compiler{
         result = module.GetStructurallyEquivalentType(StandardIds.StructuralTypes, fName);
       }
       if (parameters != null){
-        ParameterList clonedParams = new ParameterList(n);
+        List<Parameter> clonedParams = new List<Parameter>(n);
         for (int i = 0; i < n; i++){
           Parameter p = parameters[i];
           if (p != null) p = (Parameter)p.Clone();
@@ -11760,14 +11757,14 @@ namespace System.Compiler{
     public override bool IsStructural{
       get{return true;}
     }
-    protected TypeNodeList structuralElementTypes;
-    public override TypeNodeList StructuralElementTypes{
+    protected List<TypeNode> structuralElementTypes;
+    public override List<TypeNode> StructuralElementTypes{
       get{
-        TypeNodeList result = this.structuralElementTypes;
+        List<TypeNode> result = this.structuralElementTypes;
         if (result != null) return result;
-        this.structuralElementTypes = result = new TypeNodeList();
+        this.structuralElementTypes = result = new List<TypeNode>();
         result.Add(this.ReturnType);
-        ParameterList pars = this.Parameters;
+        List<Parameter> pars = this.Parameters;
         for (int i = 0, n = pars == null ? 0 : pars.Count; i < n; i++){
           Parameter par = pars[i]; 
           if (par == null || par.Type == null) continue;
@@ -11813,8 +11810,8 @@ namespace System.Compiler{
       this.Flags |= TypeFlags.Sealed;
     }
 #if !MinimalReader
-    public EnumNode(Module declaringModule, TypeNode declaringType, AttributeList attributes, TypeFlags typeAttributes,
-      Identifier Namespace, Identifier name, InterfaceList interfaces, MemberList members)
+    public EnumNode(Module declaringModule, TypeNode declaringType, List<AttributeNode> attributes, TypeFlags typeAttributes,
+      Identifier Namespace, Identifier name, List<Interface> interfaces, List<Member> members)
       : base(declaringModule, declaringType, attributes, typeAttributes, Namespace, name, interfaces, members, NodeType.EnumNode){
       this.typeCode = ElementType.ValueType;
       this.Flags |= TypeFlags.Sealed;
@@ -11835,7 +11832,7 @@ namespace System.Compiler{
           if (this.template is EnumNode)
             return this.underlyingType = ((EnumNode)this.template).UnderlyingType;
           this.underlyingType = CoreSystemTypes.Int32;
-          MemberList members = this.Members;
+          List<Member> members = this.Members;
           for (int i = 0, n = members.Count; i < n; i++){
             Member mem = members[i];
             Field f = mem as Field;
@@ -11847,7 +11844,7 @@ namespace System.Compiler{
       }
       set{
         this.underlyingType = value;
-        MemberList members = this.Members;
+        List<Member> members = this.Members;
         for (int i = 0, n = members.Count; i < n; i++){
           Member mem = members[i];
           Field f = mem as Field;
@@ -11878,7 +11875,7 @@ namespace System.Compiler{
   public class Interface : TypeNode{
 #endif
     protected TrivialHashtable jointMemberTable;
-    protected MemberList jointDefaultMembers;
+    protected List<Member> jointDefaultMembers;
 
     internal static readonly Interface/*!*/ Dummy = new Interface();
 
@@ -11887,12 +11884,12 @@ namespace System.Compiler{
       : base(NodeType.Interface){
       this.Flags = TypeFlags.Interface|TypeFlags.Abstract;
     }
-    public InterfaceNode(InterfaceList baseInterfaces)
+    public InterfaceNode(List<Interface> baseInterfaces)
       : base(NodeType.Interface){
       this.Interfaces = baseInterfaces;
       this.Flags = TypeFlags.Interface|TypeFlags.Abstract;
     }
-    public InterfaceNode(InterfaceList baseInterfaces, NestedTypeProvider provideNestedTypes, TypeAttributeProvider provideAttributes, TypeMemberProvider provideMembers, object handle)
+    public InterfaceNode(List<Interface> baseInterfaces, NestedTypeProvider provideNestedTypes, TypeAttributeProvider provideAttributes, TypeMemberProvider provideMembers, object handle)
       : base(NodeType.Interface, provideNestedTypes, provideAttributes, provideMembers, handle){
       this.Interfaces = baseInterfaces;
     }
@@ -11901,37 +11898,37 @@ namespace System.Compiler{
       : base(NodeType.Interface){
       this.Flags = TypeFlags.Interface|TypeFlags.Abstract;
     }
-    public Interface(InterfaceList baseInterfaces)
+    public Interface(List<Interface> baseInterfaces)
       : base(NodeType.Interface){
       this.Interfaces = baseInterfaces;
       this.Flags = TypeFlags.Interface|TypeFlags.Abstract;
     }
-    public Interface(InterfaceList baseInterfaces, NestedTypeProvider provideNestedTypes, TypeAttributeProvider provideAttributes, TypeMemberProvider provideMembers, object handle)
+    public Interface(List<Interface> baseInterfaces, NestedTypeProvider provideNestedTypes, TypeAttributeProvider provideAttributes, TypeMemberProvider provideMembers, object handle)
       : base(NodeType.Interface, provideNestedTypes, provideAttributes, provideMembers, handle){
       this.Interfaces = baseInterfaces;
     }
 #endif
 #if !MinimalReader
-    public Interface(Module declaringModule, TypeNode declaringType, AttributeList attributes, TypeFlags flags,
-      Identifier Namespace, Identifier name, InterfaceList baseInterfaces, MemberList members)
+    public Interface(Module declaringModule, TypeNode declaringType, List<AttributeNode> attributes, TypeFlags flags,
+      Identifier Namespace, Identifier name, List<Interface> baseInterfaces, List<Member> members)
       : base(declaringModule, declaringType, attributes, flags, Namespace, name, baseInterfaces, members, NodeType.Interface){
       this.Flags |= TypeFlags.Interface|TypeFlags.Abstract;
     }
-    public override void GetAbstractMethods(MethodList/*!*/ result) {
-      MemberList members = this.Members;
+    public override void GetAbstractMethods(List<Method>/*!*/ result) {
+      List<Member> members = this.Members;
       if (members == null) return;
       for (int i = 0, n = members.Count; i < n; i++){
         Method m = members[i] as Method;
         if (m != null) result.Add(m);
       }
     }
-    public virtual MemberList GetAllDefaultMembers() {
+    public virtual List<Member> GetAllDefaultMembers() {
       if (this.jointDefaultMembers == null) {
-        this.jointDefaultMembers = new MemberList();
-        MemberList defs = this.DefaultMembers;
+        this.jointDefaultMembers = new List<Member>();
+        List<Member> defs = this.DefaultMembers;
         for (int i = 0, n = defs == null ? 0 : defs.Count; i < n; i++)
           this.jointDefaultMembers.Add(defs[i]);
-        InterfaceList interfaces = this.Interfaces;
+        var interfaces = this.Interfaces;
         if (interfaces != null)
           for (int j = 0, m = interfaces.Count; j < m; j++) {
             Interface iface = interfaces[j];
@@ -11944,17 +11941,17 @@ namespace System.Compiler{
       }
       return this.jointDefaultMembers;
     }
-    public virtual MemberList GetAllMembersNamed(Identifier/*!*/ name) {
+    public virtual List<Member> GetAllMembersNamed(Identifier/*!*/ name) {
       lock (this){
         TrivialHashtable memberTable = this.jointMemberTable;
         if (memberTable == null) this.jointMemberTable = memberTable = new TrivialHashtable();
-        MemberList result = (MemberList)memberTable[name.UniqueIdKey];
+        List<Member> result = (List<Member>)memberTable[name.UniqueIdKey];
         if (result != null) return result;
-        memberTable[name.UniqueIdKey] = result = new MemberList();
-        MemberList members = this.GetMembersNamed(name);
+        memberTable[name.UniqueIdKey] = result = new List<Member>();
+        List<Member> members = this.GetMembersNamed(name);
         for (int i = 0, n = members == null ? 0 : members.Count; i < n; i++)
           result.Add(members[i]);
-        InterfaceList interfaces = this.Interfaces;
+        List<Interface> interfaces = this.Interfaces;
         for (int j = 0, m = interfaces == null ? 0 : interfaces.Count; j < m; j++){
           Interface iface = interfaces[j];
           if (iface == null) continue;
@@ -11984,8 +11981,8 @@ namespace System.Compiler{
       this.typeCode = ElementType.ValueType;
     }
 #if !MinimalReader
-    public Struct(Module declaringModule, TypeNode declaringType, AttributeList attributes, TypeFlags flags,
-      Identifier Namespace, Identifier name, InterfaceList interfaces, MemberList members)
+    public Struct(Module declaringModule, TypeNode declaringType, List<AttributeNode> attributes, TypeFlags flags,
+      Identifier Namespace, Identifier name, List<Interface> interfaces, List<Member> members)
       : base(declaringModule, declaringType, attributes, flags, Namespace, name, interfaces, members, NodeType.Struct){
       this.Interfaces = interfaces;
       this.typeCode = ElementType.ValueType;
@@ -12000,7 +11997,7 @@ namespace System.Compiler{
         this.cachedUnmanagedIsValid = true; //protect against cycles
         this.cachedUnmanaged = true; //Self references should not influence the answer
         if (this.IsPrimitive) return this.cachedUnmanaged = true;
-        MemberList members = this.Members;
+        List<Member> members = this.Members;
         bool isUnmanaged = true;
         for (int i = 0, n = members == null ? 0 : members.Count; i < n; i++){
           Field f = members[i] as Field;
@@ -12029,7 +12026,7 @@ namespace System.Compiler{
         this.cachedPointerFreeIsValid = true; //protect against cycles
         this.cachedPointerFree = true; //Self references should not influence the answer
         if (this.IsPrimitive) return this.cachedPointerFree = true;
-        MemberList members = this.Members;
+        List<Member> members = this.Members;
         bool isPointerFree = true;
         for (int i = 0, n = members == null ? 0 : members.Count; i < n; i++)
         {
@@ -12072,7 +12069,7 @@ namespace System.Compiler{
       this.Flags = TypeFlags.Interface|TypeFlags.NestedPublic|TypeFlags.Abstract;
       this.Namespace = StandardIds.TypeParameter;
     }
-    public TypeParameter(InterfaceList baseInterfaces, NestedTypeProvider provideNestedTypes, TypeAttributeProvider provideAttributes, TypeMemberProvider provideMembers, object handle)
+    public TypeParameter(List<Interface> baseInterfaces, NestedTypeProvider provideNestedTypes, TypeAttributeProvider provideAttributes, TypeMemberProvider provideMembers, object handle)
       : base(baseInterfaces, provideNestedTypes, provideAttributes, provideMembers, handle){
       this.NodeType = NodeType.TypeParameter;
       this.Flags = TypeFlags.Interface|TypeFlags.NestedPublic|TypeFlags.Abstract;
@@ -12250,14 +12247,14 @@ namespace System.Compiler{
       }
     }
 #endif
-    protected internal TypeNodeList structuralElementTypes;
-    public override TypeNodeList StructuralElementTypes{
+    protected internal List<TypeNode> structuralElementTypes;
+    public override List<TypeNode> StructuralElementTypes{
       get{
-        TypeNodeList result = this.structuralElementTypes;
+        List<TypeNode> result = this.structuralElementTypes;
         if (result != null) return result;
-        this.structuralElementTypes = result = new TypeNodeList();
+        this.structuralElementTypes = result = new List<TypeNode>();
         if (this.BaseType != null) result.Add(this.BaseType);
-        InterfaceList interfaces = this.Interfaces;
+        var interfaces = this.Interfaces;
         for (int i = 0, n = interfaces == null ? 0 : interfaces.Count; i < n; i++){
           Interface iface = interfaces[i]; 
           if (iface == null) continue;
@@ -12267,7 +12264,7 @@ namespace System.Compiler{
       }
     }
 #if !NoXml
-    internal override void AppendDocumentIdMangledName(StringBuilder/*!*/ sb, TypeNodeList methodTypeParameters, TypeNodeList typeParameters) {
+    internal override void AppendDocumentIdMangledName(StringBuilder/*!*/ sb, List<TypeNode> methodTypeParameters, List<TypeNode> typeParameters) {
       if (TargetPlatform.GenericTypeNamesMangleChar != 0) {
         int n = methodTypeParameters == null ? 0 : methodTypeParameters.Count;
         for (int i = 0; i < n; i++){
@@ -12351,7 +12348,7 @@ namespace System.Compiler{
       this.Namespace = StandardIds.TypeParameter;
     }
 #if !MinimalReader
-    public MethodTypeParameter(InterfaceList baseInterfaces, NestedTypeProvider provideNestedTypes, TypeAttributeProvider provideAttributes, TypeMemberProvider provideMembers, object handle)
+    public MethodTypeParameter(List<Interface> baseInterfaces, NestedTypeProvider provideNestedTypes, TypeAttributeProvider provideAttributes, TypeMemberProvider provideMembers, object handle)
       : base(baseInterfaces, provideNestedTypes, provideAttributes, provideMembers, handle) {
       this.NodeType = NodeType.TypeParameter;
       this.Flags = TypeFlags.Interface|TypeFlags.NestedPublic|TypeFlags.Abstract;
@@ -12406,22 +12403,22 @@ namespace System.Compiler{
     }
     private Member declaringMember;
 #if !MinimalReader
-    public virtual MemberList GetAllMembersNamed(Identifier/*!*/ name) {
+    public virtual List<Member> GetAllMembersNamed(Identifier/*!*/ name) {
       lock (this) {
         TrivialHashtable memberTable = this.jointMemberTable;
         if (memberTable == null) this.jointMemberTable = memberTable = new TrivialHashtable();
-        MemberList result = (MemberList)memberTable[name.UniqueIdKey];
+        List<Member> result = (List<Member>)memberTable[name.UniqueIdKey];
         if (result != null) return result;
-        memberTable[name.UniqueIdKey] = result = new MemberList();
+        memberTable[name.UniqueIdKey] = result = new List<Member>();
         TypeNode t = this;
         while (t != null) {
-          MemberList members = t.GetMembersNamed(name);
+          List<Member> members = t.GetMembersNamed(name);
           if (members != null)
             for (int i = 0, n = members.Count; i < n; i++)
               result.Add(members[i]);
           t = t.BaseType;
         }
-        InterfaceList interfaces = this.Interfaces;
+        var interfaces = this.Interfaces;
         if (interfaces != null)
           for (int j = 0, m = interfaces.Count; j < m; j++) {
             Interface iface = interfaces[j];
@@ -12580,14 +12577,14 @@ namespace System.Compiler{
       }
     }
 #endif
-    protected internal TypeNodeList structuralElementTypes;
-    public override TypeNodeList StructuralElementTypes{
+    protected internal List<TypeNode> structuralElementTypes;
+    public override List<TypeNode> StructuralElementTypes{
       get{
-        TypeNodeList result = this.structuralElementTypes;
+        List<TypeNode> result = this.structuralElementTypes;
         if (result != null) return result;
-        this.structuralElementTypes = result = new TypeNodeList();
+        this.structuralElementTypes = result = new List<TypeNode>();
         if (this.BaseType != null) result.Add(this.BaseType);
-        InterfaceList interfaces = this.Interfaces;
+        List<Interface> interfaces = this.Interfaces;
         for (int i = 0, n = interfaces == null ? 0 : interfaces.Count; i < n; i++){
           Interface iface = interfaces[i]; 
           if (iface == null) continue;
@@ -12597,7 +12594,7 @@ namespace System.Compiler{
       }
     }
 #if !NoXml
-    internal override void AppendDocumentIdMangledName(StringBuilder/*!*/ sb, TypeNodeList methodTypeParameters, TypeNodeList typeParameters) {
+    internal override void AppendDocumentIdMangledName(StringBuilder/*!*/ sb, List<TypeNode> methodTypeParameters, List<TypeNode> typeParameters) {
       if (TargetPlatform.GenericTypeNamesMangleChar != 0) {
         int n = methodTypeParameters == null ? 0 : methodTypeParameters.Count;
         for (int i = 0; i < n; i++){
@@ -12765,10 +12762,10 @@ namespace System.Compiler{
       set{this.elementType = value;}
     }
     /// <summary>The interfaces implemented by this class or struct, or the extended by this interface.</summary>
-    public override InterfaceList Interfaces {
+    public override List<Interface> Interfaces {
       get {
         if (this.interfaces == null) {
-          InterfaceList interfaces = new InterfaceList(SystemTypes.ICloneable, SystemTypes.IList, SystemTypes.ICollection, SystemTypes.IEnumerable);
+          List<Interface> interfaces = new List<Interface>{SystemTypes.ICloneable, SystemTypes.IList, SystemTypes.ICollection, SystemTypes.IEnumerable};
           if (this.Rank == 1) {
             if (SystemTypes.GenericIEnumerable != null && SystemTypes.GenericIEnumerable.DeclaringModule == CoreSystemTypes.SystemAssembly) {
               interfaces.Add((Interface)SystemTypes.GenericIEnumerable.GetTemplateInstance(this, elementType));
@@ -12799,17 +12796,17 @@ namespace System.Compiler{
     public bool IsSzArray(){
       return this.typeCode == Metadata.ElementType.SzArray;
     }
-    private MemberList ctorList = null;
-    private MemberList getterList = null;
-    private MemberList setterList = null;
-    private MemberList addressList = null;
-    public override MemberList Members{
+    private List<Member> ctorList = null;
+    private List<Member> getterList = null;
+    private List<Member> setterList = null;
+    private List<Member> addressList = null;
+    public override List<Member> Members{
       get{
         if (this.members == null || this.membersBeingPopulated){
           lock(this){
             if (this.members == null){
               this.membersBeingPopulated = true;
-              MemberList members = this.members = new MemberList(5);
+              List<Member> members = this.members = new List<Member>(5);
               members.Add(this.Constructor);
               //^ assume this.ctorList != null && this.ctorList.Length > 1;
               members.Add(this.ctorList[1]);
@@ -12839,7 +12836,7 @@ namespace System.Compiler{
       }
     }
 #if !NoXml
-    internal override void AppendDocumentIdMangledName(StringBuilder/*!*/ sb, TypeNodeList methodTypeParameters, TypeNodeList typeParameters) {
+    internal override void AppendDocumentIdMangledName(StringBuilder/*!*/ sb, List<TypeNode> methodTypeParameters, List<TypeNode> typeParameters) {
       if (this.ElementType == null) return;
       this.ElementType.AppendDocumentIdMangledName(sb, methodTypeParameters, typeParameters);
       sb.Append('[');
@@ -12871,8 +12868,8 @@ namespace System.Compiler{
       if (this.Sizes == null || this.Sizes.Length <= dimension) return 0;
       return this.Sizes[dimension];
     }
-    public override MemberList/*!*/ GetMembersNamed(Identifier name) {
-      if (name == null) return new MemberList(0);
+    public override List<Member>/*!*/ GetMembersNamed(Identifier name) {
+      if (name == null) return new List<Member>(0);
       if (name.UniqueIdKey == StandardIds.Get.UniqueIdKey){
         if (this.getterList == null){
           Method getter = this.Getter;
@@ -12902,7 +12899,7 @@ namespace System.Compiler{
         }
         return this.addressList;
       }else
-        return new MemberList(0);
+        return new List<Member>(0);
     }
 #if !NoReflection
     public override Type GetRuntimeType(){
@@ -12938,19 +12935,19 @@ namespace System.Compiler{
               ctor.DeclaringType = this;
               ctor.Flags |= MethodFlags.Public;
               int n = this.Rank;
-              ctor.Parameters = new ParameterList(n);
+              ctor.Parameters = new List<Parameter>(n);
               for (int i = 0; i < n; i++){
                 Parameter par = new Parameter();
                 par.DeclaringMethod = ctor;
                 par.Type = CoreSystemTypes.Int32;
                 ctor.Parameters.Add(par);
               }
-              this.ctorList = new MemberList(2);
+              this.ctorList = new List<Member>(2);
               this.ctorList.Add(ctor);
               ctor = new InstanceInitializer();
               ctor.DeclaringType = this;
               ctor.Flags |= MethodFlags.Public;
-              ctor.Parameters = new ParameterList(n=n*2);
+              ctor.Parameters = new List<Parameter>(n=n*2);
               for (int i = 0; i < n; i++){
                 Parameter par = new Parameter();
                 par.Type = CoreSystemTypes.Int32;
@@ -12974,7 +12971,7 @@ namespace System.Compiler{
               getter.DeclaringType = this;
               getter.CallingConvention = CallingConventionFlags.HasThis;
               getter.Flags = MethodFlags.Public;
-              getter.Parameters = new ParameterList();
+              getter.Parameters = new List<Parameter>();
               for (int i = 0, n = this.Rank; i < n; i++){
                 Parameter par = new Parameter();
                 par.Type = CoreSystemTypes.Int32;
@@ -12982,7 +12979,7 @@ namespace System.Compiler{
                 getter.Parameters.Add(par);
               }
               getter.ReturnType = this.ElementType;
-              this.getterList = new MemberList();
+              this.getterList = new List<Member>();
               this.getterList.Add(getter);
             }
           }
@@ -13000,7 +12997,7 @@ namespace System.Compiler{
               setter.DeclaringType = this;
               setter.CallingConvention = CallingConventionFlags.HasThis;
               setter.Flags = MethodFlags.Public;
-              setter.Parameters = new ParameterList();
+              setter.Parameters = new List<Parameter>();
               Parameter par;
               for (int i = 0, n = this.Rank; i < n; i++){
                 par = new Parameter();
@@ -13013,7 +13010,7 @@ namespace System.Compiler{
               par.DeclaringMethod = setter;
               setter.Parameters.Add(par);
               setter.ReturnType = CoreSystemTypes.Void;
-              this.setterList = new MemberList();
+              this.setterList = new List<Member>();
               this.setterList.Add(setter);
             }
           }
@@ -13031,7 +13028,7 @@ namespace System.Compiler{
               address.DeclaringType = this;
               address.CallingConvention = CallingConventionFlags.HasThis;
               address.Flags = MethodFlags.Public;
-              address.Parameters = new ParameterList();
+              address.Parameters = new List<Parameter>();
               for (int i = 0, n = this.Rank; i < n; i++){
                 Parameter par = new Parameter();
                 par.Type = CoreSystemTypes.Int32;
@@ -13039,7 +13036,7 @@ namespace System.Compiler{
                 address.Parameters.Add(par);
               }
               address.ReturnType = this.ElementType.GetReferenceType();
-              this.addressList = new MemberList();
+              this.addressList = new List<Member>();
               this.addressList.Add(address);
             }
           }
@@ -13081,12 +13078,12 @@ namespace System.Compiler{
     public override bool IsStructural{
       get{return true;}
     }
-    protected TypeNodeList structuralElementTypes;
-    public override TypeNodeList StructuralElementTypes{
+    protected List<TypeNode> structuralElementTypes;
+    public override List<TypeNode> StructuralElementTypes{
       get{
-        TypeNodeList result = this.structuralElementTypes;
+        List<TypeNode> result = this.structuralElementTypes;
         if (result != null) return result;
-        this.structuralElementTypes = result = new TypeNodeList(1);
+        this.structuralElementTypes = result = new List<TypeNode>(1);
         result.Add(this.ElementType);
         return result;
       }
@@ -13173,7 +13170,7 @@ namespace System.Compiler{
       }
     }
 #if !NoXml
-    internal override void AppendDocumentIdMangledName(StringBuilder/*!*/ sb, TypeNodeList methodTypeParameters, TypeNodeList typeParameters) {
+    internal override void AppendDocumentIdMangledName(StringBuilder/*!*/ sb, List<TypeNode> methodTypeParameters, List<TypeNode> typeParameters) {
       if (this.elementType == null) return;
       this.elementType.AppendDocumentIdMangledName(sb, methodTypeParameters, typeParameters);
       sb.Append('*');
@@ -13220,12 +13217,12 @@ namespace System.Compiler{
       }
     }
 
-    protected TypeNodeList structuralElementTypes;
-    public override TypeNodeList StructuralElementTypes{
+    protected List<TypeNode> structuralElementTypes;
+    public override List<TypeNode> StructuralElementTypes{
       get{
-        TypeNodeList result = this.structuralElementTypes;
+        List<TypeNode> result = this.structuralElementTypes;
         if (result != null) return result;
-        this.structuralElementTypes = result = new TypeNodeList(1);
+        this.structuralElementTypes = result = new List<TypeNode>(1);
         result.Add(this.ElementType);
         return result;
       }
@@ -13261,7 +13258,7 @@ namespace System.Compiler{
       set{this.elementType = value;}
     }
 #if !NoXml
-    internal override void AppendDocumentIdMangledName(StringBuilder/*!*/ sb, TypeNodeList methodTypeParameters, TypeNodeList typeParameters) {
+    internal override void AppendDocumentIdMangledName(StringBuilder/*!*/ sb, List<TypeNode> methodTypeParameters, List<TypeNode> typeParameters) {
       if (this.elementType == null) return;
       this.elementType.AppendDocumentIdMangledName(sb, methodTypeParameters, typeParameters);
       sb.Append('@');
@@ -13313,12 +13310,12 @@ namespace System.Compiler{
     public override bool IsStructural{
       get{return true;}
     }
-    protected TypeNodeList structuralElementTypes;
-    public override TypeNodeList StructuralElementTypes{
+    protected List<TypeNode> structuralElementTypes;
+    public override List<TypeNode> StructuralElementTypes{
       get{
-        TypeNodeList result = this.structuralElementTypes;
+        List<TypeNode> result = this.structuralElementTypes;
         if (result != null) return result;
-        this.structuralElementTypes = result = new TypeNodeList(1);
+        this.structuralElementTypes = result = new List<TypeNode>(1);
         result.Add(this.ElementType);
         return result;
       }
@@ -13342,7 +13339,7 @@ namespace System.Compiler{
   }
 #if ExtendedRuntime
   public class TupleType : Struct{
-    private TupleType(FieldList domains, Identifier/*!*/ name, TypeNode/*!*/ referringType, TypeFlags visibility) {
+    private TupleType(List<Field> domains, Identifier/*!*/ name, TypeNode/*!*/ referringType, TypeFlags visibility) {
       referringType.DeclaringModule.StructurallyEquivalentType[name.UniqueIdKey] = this;
       this.DeclaringModule = referringType.DeclaringModule;
       this.NodeType = NodeType.TupleType;
@@ -13364,8 +13361,8 @@ namespace System.Compiler{
           break;
       }
       int n = domains == null ? 0 : domains.Count;
-      MemberList members = this.members = new MemberList(n);
-      TypeNodeList types = new TypeNodeList(n);
+      List<Member> members = this.members = new List<Member>(n);
+      List<TypeNode> types = new List<TypeNode>(n);
       for (int i = 0; i < n; i++){
         //^ assert domains != null;
         Field f = domains[i];
@@ -13388,14 +13385,14 @@ namespace System.Compiler{
       if (elemType == null) elemType = CoreSystemTypes.Object;
       Interface ienumerable = (Interface)SystemTypes.GenericIEnumerable.GetTemplateInstance(referringType, elemType);
       Interface ienumerator = (Interface)SystemTypes.GenericIEnumerator.GetTemplateInstance(referringType, elemType);
-      this.Interfaces = new InterfaceList(SystemTypes.TupleType, ienumerable, SystemTypes.IEnumerable);
+      this.Interfaces = new List<Interface>(SystemTypes.TupleType, ienumerable, SystemTypes.IEnumerable);
 
       This ThisParameter = new This(this.GetReferenceType());
-      StatementList statements = new StatementList(1);
+      List<Statement> statements = new List<Statement>(1);
       TypeNode tEnumerator = TupleEnumerator.For(this, n, elemType, ienumerator, referringType);
       InstanceInitializer cons = tEnumerator.GetConstructor(this);
       if (cons == null) { Debug.Fail(""); return; }
-      ExpressionList args = new ExpressionList(new AddressDereference(ThisParameter, this));
+      List<Expression> args = new List<Expression>(new AddressDereference(ThisParameter, this));
       statements.Add(new Return(new Construct(new MemberBinding(null, cons), args)));
       Block body = new Block(statements);
       Method getEnumerator = new Method(this, null, StandardIds.GetEnumerator, null, ienumerator, body);
@@ -13406,12 +13403,12 @@ namespace System.Compiler{
 
       //IEnumerable.GetEnumerator
       ThisParameter = new This(this.GetReferenceType());
-      statements = new StatementList(1);
-      MethodCall mcall = new MethodCall(new MemberBinding(ThisParameter, getEnumerator), new ExpressionList(0), NodeType.Call, SystemTypes.IEnumerator);
+      statements = new List<Statement>(1);
+      MethodCall mcall = new MethodCall(new MemberBinding(ThisParameter, getEnumerator), new List<Expression>(0), NodeType.Call, SystemTypes.IEnumerator);
       statements.Add(new Return(mcall));
       getEnumerator = new Method(this, null, StandardIds.IEnumerableGetEnumerator, null, SystemTypes.IEnumerator, new Block(statements));
       getEnumerator.ThisParameter = ThisParameter;
-      getEnumerator.ImplementedInterfaceMethods = new MethodList(SystemTypes.IEnumerable.GetMethod(StandardIds.GetEnumerator));
+      getEnumerator.ImplementedInterfaceMethods = new List<Method>(SystemTypes.IEnumerable.GetMethod(StandardIds.GetEnumerator));
       getEnumerator.CallingConvention = CallingConventionFlags.HasThis;
       getEnumerator.Flags = MethodFlags.Private | MethodFlags.Virtual | MethodFlags.SpecialName;
       this.members.Add(getEnumerator);
@@ -13421,7 +13418,7 @@ namespace System.Compiler{
       this.NodeType = NodeType.TupleType;
       this.typeCode = ElementType.ValueType;
     }
-    public static TupleType For(FieldList domains, TypeNode referringType){
+    public static TupleType For(List<Field> domains, TypeNode referringType){
       if (referringType == null) return null;
       Module module = referringType.DeclaringModule;
       if (module == null) return null;
@@ -13452,7 +13449,7 @@ namespace System.Compiler{
         bool goodMatch = tup != null;
         if (goodMatch) {
           //^ assert tup != null;
-          MemberList tMembers = tup.Members;
+          List<Member> tMembers = tup.Members;
           int m = tMembers == null ? 0 : tMembers.Count;
           goodMatch = n == m-2;
           if (goodMatch) {
@@ -13477,13 +13474,13 @@ namespace System.Compiler{
     public override bool IsStructural{
       get{return true;}
     }
-    protected TypeNodeList structuralElementTypes;
-    public override TypeNodeList StructuralElementTypes{
+    protected List<TypeNode> structuralElementTypes;
+    public override List<TypeNode> StructuralElementTypes{
       get{
-        TypeNodeList result = this.structuralElementTypes;
+        List<TypeNode> result = this.structuralElementTypes;
         if (result != null) return result;
-        this.structuralElementTypes = result = new TypeNodeList(1);
-        MemberList members = this.Members;
+        this.structuralElementTypes = result = new List<TypeNode>(1);
+        List<Member> members = this.Members;
         for (int i = 0, n = members == null ? 0 : members.Count; i < n; i++){
           Field f = members[i] as Field;
           if (f == null || f.Type == null) continue;
@@ -13520,8 +13517,8 @@ namespace System.Compiler{
     private TupleEnumerator(){}
     internal static TypeNode/*!*/ For(TupleType/*!*/ tuple, int numDomains, TypeNode/*!*/ elementType, Interface/*!*/ targetIEnumerator, TypeNode/*!*/ referringType) {
       Identifier id = Identifier.For("Enumerator"+tuple.Name);
-      InterfaceList interfaces = new InterfaceList(targetIEnumerator, SystemTypes.IDisposable, SystemTypes.IEnumerator);
-      MemberList members = new MemberList(5);
+      List<Interface> interfaces = new List<Interface>(targetIEnumerator, SystemTypes.IDisposable, SystemTypes.IEnumerator);
+      List<Member> members = new List<Member>(5);
       Class enumerator = new Class(referringType.DeclaringModule, null, null, TypeFlags.Sealed, targetIEnumerator.Namespace, id, CoreSystemTypes.Object, interfaces, members);
       enumerator.IsNormalized = true;
       if ((tuple.Flags & TypeFlags.VisibilityMask) == TypeFlags.Public){
@@ -13540,23 +13537,23 @@ namespace System.Compiler{
       members.Add(pField);
       //Constructor
       Parameter par = new Parameter(null, ParameterFlags.None, StandardIds.Value, tuple, null, null);
-      StatementList statements = new StatementList(4);
+      List<Statement> statements = new List<Statement>(4);
       InstanceInitializer constr = CoreSystemTypes.Object.GetConstructor();
       if (constr == null) { Debug.Fail(""); return enumerator; }
       This thisParameter = new This(enumerator);
-      MethodCall mcall = new MethodCall(new MemberBinding(thisParameter, constr), new ExpressionList(0), NodeType.Call, CoreSystemTypes.Void);
+      MethodCall mcall = new MethodCall(new MemberBinding(thisParameter, constr), new List<Expression>(0), NodeType.Call, CoreSystemTypes.Void);
       statements.Add(new ExpressionStatement(mcall));
       statements.Add(new AssignmentStatement(new MemberBinding(thisParameter, tField), par));
       statements.Add(new AssignmentStatement(new MemberBinding(thisParameter, pField), Literal.Int32MinusOne));
       statements.Add(new Return());
-      InstanceInitializer econs = new InstanceInitializer(enumerator, null, new ParameterList(par), new Block(statements));
+      InstanceInitializer econs = new InstanceInitializer(enumerator, null, new List<Parameter>(par), new Block(statements));
       econs.ThisParameter = thisParameter;
       econs.Flags |= MethodFlags.Public;
       members.Add(econs);
       //get_Current
       thisParameter = new This(enumerator);
-      statements = new StatementList(numDomains+1);
-      BlockList blocks = new BlockList(numDomains);
+      statements = new List<Statement>(numDomains+1);
+      List<Block> blocks = new List<Block>(numDomains);
       statements.Add(new SwitchInstruction(new MemberBinding(thisParameter, pField), blocks));
       constr = SystemTypes.InvalidOperationException.GetConstructor();
       if (constr == null) { Debug.Fail(""); return enumerator; }
@@ -13568,15 +13565,15 @@ namespace System.Compiler{
         statements.Add(b);
         blocks.Add(b);
         if (f.Type == elementType || f.Type == null)
-          b.Statements = new StatementList(new Return(mb));
+          b.Statements = new List<Statement>(new Return(mb));
         else{
           TypeUnion tUnion = elementType as TypeUnion;
           Debug.Assert(tUnion != null);
           if (tUnion != null){
             Method m = tUnion.GetImplicitCoercionFromMethod(f.Type);
             if (m != null){
-              MethodCall mCall = new MethodCall(new MemberBinding(null, m), new ExpressionList(mb));
-              b.Statements = new StatementList(new Return(mCall));
+              MethodCall mCall = new MethodCall(new MemberBinding(null, m), new List<Expression>(mb));
+              b.Statements = new List<Statement>(new Return(mCall));
             }else{
               TypeUnion eUnion = f.Type as TypeUnion;
               if (eUnion != null){
@@ -13588,9 +13585,9 @@ namespace System.Compiler{
                 }
                 Local temp = new Local(Identifier.Empty, eUnion);
                 Expression tempAddr = new UnaryExpression(temp, NodeType.AddressOf);
-                StatementList stats = new StatementList(2);
+                List<Statement> stats = new List<Statement>(2);
                 stats.Add(new AssignmentStatement(temp, mb));
-                ExpressionList arguments = new ExpressionList(2);
+                List<Expression> arguments = new List<Expression>(2);
                 arguments.Add(new MethodCall(new MemberBinding(tempAddr, getValue), null));
                 arguments.Add(new MethodCall(new MemberBinding(tempAddr, getTagAsType), null));
                 stats.Add(new Return(new MethodCall(new MemberBinding(null, fromObject), arguments)));
@@ -13609,33 +13606,33 @@ namespace System.Compiler{
       members.Add(getCurrent);
 
       //IEnumerator.GetCurrent
-      statements = new StatementList(1);
+      statements = new List<Statement>(1);
       This ThisParameter = new This(enumerator);
-      MethodCall callGetCurrent = new MethodCall(new MemberBinding(ThisParameter, getCurrent), new ExpressionList(0), NodeType.Call, elementType); 
+      MethodCall callGetCurrent = new MethodCall(new MemberBinding(ThisParameter, getCurrent), new List<Expression>(0), NodeType.Call, elementType); 
       MemberBinding etExpr = new MemberBinding(null, elementType);
       statements.Add(new Return(new BinaryExpression(callGetCurrent, etExpr, NodeType.Box, CoreSystemTypes.Object)));
       Method ieGetCurrent = new Method(enumerator, null, StandardIds.IEnumeratorGetCurrent, null, CoreSystemTypes.Object, new Block(statements));
       ieGetCurrent.ThisParameter = ThisParameter;
-      ieGetCurrent.ImplementedInterfaceMethods = new MethodList(SystemTypes.IEnumerator.GetMethod(StandardIds.getCurrent));
+      ieGetCurrent.ImplementedInterfaceMethods = new List<Method>(SystemTypes.IEnumerator.GetMethod(StandardIds.getCurrent));
       ieGetCurrent.CallingConvention = CallingConventionFlags.HasThis;
       ieGetCurrent.Flags = MethodFlags.Private|MethodFlags.Virtual|MethodFlags.SpecialName;
       members.Add(ieGetCurrent);
 
       //IEnumerator.Reset
-      statements = new StatementList(2);
+      statements = new List<Statement>(2);
       ThisParameter = new This(enumerator);
       statements.Add(new AssignmentStatement(new MemberBinding(ThisParameter, pField), Literal.Int32Zero));
       statements.Add(new Return());
       Method reset = new Method(enumerator, null, StandardIds.IEnumeratorReset, null, CoreSystemTypes.Void, new Block(statements));
       reset.ThisParameter = ThisParameter;
-      reset.ImplementedInterfaceMethods = new MethodList(SystemTypes.IEnumerator.GetMethod(StandardIds.Reset));
+      reset.ImplementedInterfaceMethods = new List<Method>(SystemTypes.IEnumerator.GetMethod(StandardIds.Reset));
       reset.CallingConvention = CallingConventionFlags.HasThis;
       reset.Flags = MethodFlags.Private|MethodFlags.Virtual|MethodFlags.SpecialName;
       members.Add(reset);
 
       //MoveNext
       ThisParameter = new This(enumerator);
-      statements = new StatementList(5);
+      statements = new List<Statement>(5);
       MemberBinding pos = new MemberBinding(ThisParameter, pField);
       Expression comparison = new BinaryExpression(pos, new Literal(numDomains, CoreSystemTypes.Int32), NodeType.Lt);
       Block returnTrue = new Block();
@@ -13650,7 +13647,7 @@ namespace System.Compiler{
       moveNext.ThisParameter = ThisParameter;
       members.Add(moveNext);
       //IDispose.Dispose
-      statements = new StatementList(1);
+      statements = new List<Statement>(1);
       statements.Add(new Return());
       Method dispose = new Method(enumerator, null, StandardIds.Dispose, null, CoreSystemTypes.Void, new Block(statements));
       dispose.CallingConvention = CallingConventionFlags.HasThis;
@@ -13691,34 +13688,34 @@ namespace System.Compiler{
     }
     public virtual void ProvideMembers(){
       if (this.AliasedType == null) return;
-      this.Interfaces = new InterfaceList(1);
+      this.Interfaces = new List<Interface>(1);
       if (this.RequireExplicitCoercionFromUnderlyingType)
         this.Interfaces.Add(SystemTypes.TypeDefinition);
       else
         this.Interfaces.Add(SystemTypes.TypeAlias);
-      MemberList members = this.members;
-      if (members == null) members = this.members = new MemberList();
+      List<Member> members = this.members;
+      if (members == null) members = this.members = new List<Member>();
       //Value field
       Field valueField = new Field(this, null, FieldFlags.Private, StandardIds.Value, this.AliasedType, null);
       members.Add(valueField);
       //Implicit conversion from this type to underlying type
-      ParameterList parameters = new ParameterList(1);
+      List<Parameter> parameters = new List<Parameter>(1);
       Parameter valuePar = new Parameter(null, ParameterFlags.None, StandardIds.Value, this, null, null);
       parameters.Add(valuePar);
       Method toAliasedType = new Method(this, null, StandardIds.opImplicit, parameters, this.AliasedType, null); 
       toAliasedType.Flags = MethodFlags.Static|MethodFlags.SpecialName|MethodFlags.Public;
       members.Add(toAliasedType);
-      StatementList statements = new StatementList(1);
+      List<Statement> statements = new List<Statement>(1);
       statements.Add(new Return(new MemberBinding(new UnaryExpression(valuePar, NodeType.AddressOf), valueField)));
       toAliasedType.Body = new Block(statements);
       //Implicit or explicit conversion from underlying type to this type
       Identifier opId = this.RequireExplicitCoercionFromUnderlyingType ? StandardIds.opExplicit : StandardIds.opImplicit;
-      parameters = new ParameterList(1);
+      parameters = new List<Parameter>(1);
       parameters.Add(valuePar = new Parameter(null, ParameterFlags.None, StandardIds.Value, this.AliasedType, null, null));
       Method fromAliasedType = new Method(this, null, opId, parameters, this, null); 
       fromAliasedType.Flags = MethodFlags.Static|MethodFlags.SpecialName|MethodFlags.Public;
       members.Add(fromAliasedType);
-      statements = new StatementList(2);
+      statements = new List<Statement>(2);
       Local loc = new Local(this);
       statements.Add(new AssignmentStatement(new MemberBinding(new UnaryExpression(loc, NodeType.AddressOf), valueField), valuePar));
       statements.Add(new Return(loc));
@@ -13726,45 +13723,45 @@ namespace System.Compiler{
       this.AddCoercionWrappers(this.AliasedType.ExplicitCoercionMethods, StandardIds.opExplicit, fromAliasedType, toAliasedType);
       this.AddCoercionWrappers(this.AliasedType.ImplicitCoercionMethods, StandardIds.opImplicit, fromAliasedType, toAliasedType);
     }
-    private void AddCoercionWrappers(MemberList coercions, Identifier id, Method/*!*/ fromAliasedType, Method/*!*/ toAliasedType) 
+    private void AddCoercionWrappers(List<Member> coercions, Identifier id, Method/*!*/ fromAliasedType, Method/*!*/ toAliasedType) 
       //^ requires this.members != null;
     {
       if (coercions == null) return;
-      MemberList members = this.members;
+      List<Member> members = this.members;
       for (int i = 0, n = coercions.Count; i < n; i++){
         Method coercion = coercions[i] as Method;
         if (coercion == null || coercion.Parameters == null || coercion.Parameters.Count != 1) continue;
-        ParameterList parameters = new ParameterList(1);
+        List<Parameter> parameters = new List<Parameter>(1);
         Parameter valuePar = new Parameter(null, ParameterFlags.None, StandardIds.Value, null, null, null);
         parameters.Add(valuePar);
         Method m = new Method(this, null, id, parameters, null, null);
         m.Flags = MethodFlags.Static|MethodFlags.SpecialName|MethodFlags.Public;
         Expression arg = valuePar;
-        MethodCall call = new MethodCall(new MemberBinding(null, coercion), new ExpressionList(arg));
+        MethodCall call = new MethodCall(new MemberBinding(null, coercion), new List<Expression>(arg));
         if (coercion.ReturnType == this.AliasedType){
           m.ReturnType = this;
           if (this.RequireExplicitCoercionFromUnderlyingType) m.Name = StandardIds.opExplicit;
           valuePar.Type = coercion.Parameters[0].Type;
-          call = new MethodCall(new MemberBinding(null, fromAliasedType), new ExpressionList(call));
+          call = new MethodCall(new MemberBinding(null, fromAliasedType), new List<Expression>(call));
         }else{
           m.ReturnType = coercion.ReturnType;
           valuePar.Type = this;
           //^ assume call.Operands != null;
-          call.Operands[0] = new MethodCall(new MemberBinding(null, toAliasedType), new ExpressionList(arg));
+          call.Operands[0] = new MethodCall(new MemberBinding(null, toAliasedType), new List<Expression>(arg));
         }
-        m.Body = new Block(new StatementList(new Return(call)));
+        m.Body = new Block(new List<Statement>(new Return(call)));
         members.Add(m);
       }
     }
     public override bool IsStructural{
       get{return this.RequireExplicitCoercionFromUnderlyingType;}
     }
-    protected TypeNodeList structuralElementTypes;
-    public override TypeNodeList StructuralElementTypes{
+    protected List<TypeNode> structuralElementTypes;
+    public override List<TypeNode> StructuralElementTypes{
       get{
-        TypeNodeList result = this.structuralElementTypes;
+        List<TypeNode> result = this.structuralElementTypes;
         if (result != null) return result;
-        this.structuralElementTypes = result = new TypeNodeList(1);
+        this.structuralElementTypes = result = new List<TypeNode>(1);
         result.Add(this.AliasedType);
         return result;
       }
@@ -13781,11 +13778,11 @@ namespace System.Compiler{
     }
   }
   public class TypeIntersection : Struct{
-    private TypeNodeList types; //sorted by UniqueKey
-    public TypeNodeList Types{
+    private List<TypeNode> types; //sorted by UniqueKey
+    public List<TypeNode> Types{
       get{
         if (this.types != null) return this.types;
-        if (this.ProvideTypeMembers != null) { MemberList mems = this.Members; if (mems != null) mems = null; }
+        if (this.ProvideTypeMembers != null) { List<Member> mems = this.Members; if (mems != null) mems = null; }
         return this.types;          
       }
       set{
@@ -13793,14 +13790,14 @@ namespace System.Compiler{
       }
     }
 
-    private TypeIntersection(TypeNodeList types, Identifier name) {
+    private TypeIntersection(List<TypeNode> types, Identifier name) {
       this.NodeType = NodeType.TypeIntersection;
       this.Flags = TypeFlags.Public|TypeFlags.Sealed;
       this.Namespace = StandardIds.StructuralTypes;
       this.Name = name;
       this.Types = types;
       int n = types == null ? 0 : types.Count;
-      InterfaceList ifaces = this.Interfaces = new InterfaceList(n+1);
+      List<Interface> ifaces = this.Interfaces = new List<Interface>(n+1);
       ifaces.Add(SystemTypes.TypeIntersection);
       if (types != null)
         for (int i = 0; i < n; i++){
@@ -13815,7 +13812,7 @@ namespace System.Compiler{
       this.NodeType = NodeType.TypeIntersection;
       this.typeCode = ElementType.ValueType;
     }
-    public static TypeIntersection For(TypeNodeList types, Module module) {
+    public static TypeIntersection For(List<TypeNode> types, Module module) {
       if (module == null) return null;   
       if (types != null && !TypeUnion.AreNormalized(types))   
         types = TypeUnion.Normalize(types);
@@ -13829,7 +13826,7 @@ namespace System.Compiler{
         //Mangled name is the same. But mangling is not unique, so check for equality.
         TypeIntersection ti = t as TypeIntersection;
         if (ti != null){
-          TypeNodeList ts = ti.Types;
+          List<TypeNode> ts = ti.Types;
           int n = types == null ? 0 : types.Count;
           bool goodMatch = ts != null && ts.Count == n;
           for (int i = 0; goodMatch && i < n; i++) {
@@ -13848,7 +13845,7 @@ namespace System.Compiler{
       module.StructurallyEquivalentType[tName.UniqueIdKey] = result;
       return result;
     }
-    public static TypeIntersection For(TypeNodeList types, TypeNode referringType) {
+    public static TypeIntersection For(List<TypeNode> types, TypeNode referringType) {
       if (referringType == null) return null;
       Module module = referringType.DeclaringModule;
       if (module == null) return null;   
@@ -13864,7 +13861,7 @@ namespace System.Compiler{
         //Mangled name is the same. But mangling is not unique, so check for equality.
         TypeIntersection ti = t as TypeIntersection;
         if (ti != null){
-          TypeNodeList ts = ti.Types;
+          List<TypeNode> ts = ti.Types;
           int n = types == null ? 0 : types.Count;
           bool goodMatch = ts != null && ts.Count == n;
           for (int i = 0; goodMatch && i < n; i++) {
@@ -13901,13 +13898,13 @@ namespace System.Compiler{
     public override bool IsStructural{
       get{return true;}
     }
-    protected TypeNodeList structuralElementTypes;
-    public override TypeNodeList StructuralElementTypes{
+    protected List<TypeNode> structuralElementTypes;
+    public override List<TypeNode> StructuralElementTypes{
       get{
-        TypeNodeList result = this.structuralElementTypes;
+        List<TypeNode> result = this.structuralElementTypes;
         if (result != null) return result;
-        this.structuralElementTypes = result = new TypeNodeList(1);
-        TypeNodeList types = this.Types;
+        this.structuralElementTypes = result = new List<TypeNode>(1);
+        List<TypeNode> types = this.Types;
         for (int i = 0, n = types == null ? 0 : types.Count; i < n; i++){
           TypeNode t = types[i]; 
           if (t == null) continue;
@@ -13924,17 +13921,17 @@ namespace System.Compiler{
       return this.IsStructurallyEquivalentList(this.Types, t.Types);
     }
     private TrivialHashtable/*!*/ interfaceMethodFor = new TrivialHashtable();
-    public override MemberList Members{
+    public override List<Member> Members{
       get{
-        MemberList members = this.members;
+        List<Member> members = this.members;
         if (members == null || this.membersBeingPopulated){
           if (this.ProvideTypeMembers != null){
             lock(this){
               if (this.members != null) return this.members;
               members = base.Members;
-              MemberList coercions = this.ExplicitCoercionMethods;
+              List<Member> coercions = this.ExplicitCoercionMethods;
               int n = coercions == null ? 0 : coercions.Count;
-              TypeNodeList typeList = this.Types = new TypeNodeList(n);
+              List<TypeNode> typeList = this.Types = new List<TypeNode>(n);
               for (int i = 0; i < n; i++){
                 Method coercion = coercions[i] as Method;
                 if (coercion == null) continue;
@@ -13943,42 +13940,42 @@ namespace System.Compiler{
             }
             return this.members;
           }
-          members = this.Members = new MemberList();
+          members = this.Members = new List<Member>();
           //Value field
           members.Add(new Field(this, null, FieldFlags.Private, StandardIds.Value, CoreSystemTypes.Object, null));
           //FromObject
-          ParameterList parameters = new ParameterList(1);
+          List<Parameter> parameters = new List<Parameter>(1);
           parameters.Add(new Parameter(null, ParameterFlags.None, StandardIds.Value, CoreSystemTypes.Object, null, null));
           Method m = new Method(this, null, StandardIds.FromObject, parameters, this, null); 
           m.Flags = MethodFlags.Static|MethodFlags.SpecialName|MethodFlags.Public;
           members.Add(m);
           //coercion operators
-          parameters = new ParameterList(1);
+          parameters = new List<Parameter>(1);
           parameters.Add(new Parameter(null, ParameterFlags.None, StandardIds.Value, CoreSystemTypes.Object, null, null));
           m = new Method(this, null, StandardIds.opExplicit, parameters, this, null); 
           m.Flags = MethodFlags.Static|MethodFlags.SpecialName|MethodFlags.Public;
           members.Add(m);
-          parameters = new ParameterList(1);
+          parameters = new List<Parameter>(1);
           parameters.Add(new Parameter(null, ParameterFlags.None, StandardIds.Value, this, null, null));
           m = new Method(this, null, StandardIds.opImplicit, parameters, CoreSystemTypes.Object, null); 
           m.Flags = MethodFlags.Static|MethodFlags.SpecialName|MethodFlags.Public;
           members.Add(m);
-          TypeNodeList types = this.Types;
+          List<TypeNode> types = this.Types;
           for (int i = 0, n = types.Count; i < n; i++){
             TypeNode t = types[i];
-            parameters = new ParameterList(1);
+            parameters = new List<Parameter>(1);
             parameters.Add(new Parameter(null, ParameterFlags.None, StandardIds.Value, this, null, null));
             m = new Method(this, null, StandardIds.opImplicit, parameters, t, null); 
             m.Flags = MethodFlags.Static|MethodFlags.SpecialName|MethodFlags.Public;
             members.Add(m);
           }
           //Routines to forward interface calls to embedded object
-          InterfaceList ifaces = this.Interfaces;
+          List<Interface> ifaces = this.Interfaces;
           if (ifaces != null){
             for (int i = 0, n = ifaces.Count; i < n; i++){
               Interface iface = ifaces[i];
               if (iface == null) continue;
-              MemberList imembers = iface.Members;
+              List<Member> imembers = iface.Members;
               if (imembers == null) continue;
               for (int j = 0, k = imembers.Count; j < k; j++){
                 Method imeth = imembers[j] as Method;
@@ -14010,11 +14007,11 @@ namespace System.Compiler{
     private void ProvideBodiesForMethods()
       //^ requires this.members != null;
     {
-      MemberList members = this.members;
+      List<Member> members = this.members;
       Field valueField = (Field)members[0];
       //FromObject
       Method fromObject = (Method)members[1];
-      StatementList statements = new StatementList(2);
+      List<Statement> statements = new List<Statement>(2);
       Local resultLoc = new Local(Identifier.Empty, this);
       Expression param = fromObject.Parameters[0];
       statements.Add(new AssignmentStatement(new MemberBinding(new UnaryExpression(resultLoc, NodeType.AddressOf), valueField), param));
@@ -14022,11 +14019,11 @@ namespace System.Compiler{
       fromObject.Body = new Block(statements);
       //to coercion
       Method toMethod = (Method)members[2];
-      statements = new StatementList(2);
+      statements = new List<Statement>(2);
       resultLoc = new Local(Identifier.Empty, this);
       param = toMethod.Parameters[0];
       Expression castExpr = param;
-      TypeNodeList types = this.Types;
+      List<TypeNode> types = this.Types;
       int n = types.Count;
       for (int i = 0; i < n; i++){
         TypeNode t = types[i];
@@ -14037,13 +14034,13 @@ namespace System.Compiler{
       toMethod.Body = new Block(statements);
       //from coercions
       Method opImplicit = (Method)members[3];
-      opImplicit.Body = new Block(statements = new StatementList(1));
+      opImplicit.Body = new Block(statements = new List<Statement>(1));
       Expression val = new MemberBinding(new UnaryExpression(opImplicit.Parameters[0], NodeType.AddressOf), valueField);
       statements.Add(new Return(val));
       for (int i = 0; i < n; i++){
         TypeNode t = types[i];
         opImplicit = (Method)members[4+i];
-        opImplicit.Body = new Block(statements = new StatementList(1));
+        opImplicit.Body = new Block(statements = new List<Statement>(1));
         val = new MemberBinding(new UnaryExpression(opImplicit.Parameters[0], NodeType.AddressOf), valueField);
         val = new BinaryExpression(val, new Literal(t, CoreSystemTypes.Type), NodeType.Castclass);
         statements.Add(new Return(val));
@@ -14053,10 +14050,10 @@ namespace System.Compiler{
         Method meth = (Method)members[i];
         Method imeth = (Method)this.interfaceMethodFor[meth.UniqueKey];
         Interface iface = (Interface)imeth.DeclaringType;
-        statements = new StatementList(2);
-        ParameterList parameters = meth.Parameters;
+        statements = new List<Statement>(2);
+        List<Parameter> parameters = meth.Parameters;
         int k = parameters == null ? 0 : parameters.Count;
-        ExpressionList arguments = new ExpressionList(k);
+        List<Expression> arguments = new List<Expression>(k);
         if (parameters != null)
           for (int j = 0; j < k; j++) arguments.Add(parameters[j]);
         Expression obj = new BinaryExpression(new MemberBinding(meth.ThisParameter, valueField), new Literal(iface, CoreSystemTypes.Type), NodeType.Castclass);
@@ -14069,11 +14066,11 @@ namespace System.Compiler{
     }
   }
   public class TypeUnion : Struct{
-    private TypeNodeList types; //sorted by UniqueKey
-    public TypeNodeList Types{
+    private List<TypeNode> types; //sorted by UniqueKey
+    public List<TypeNode> Types{
       get{
         if (this.types != null) return this.types;
-        if (this.ProvideTypeMembers != null) { MemberList mems = this.Members; if (mems != null) mems = null; }
+        if (this.ProvideTypeMembers != null) { List<Member> mems = this.Members; if (mems != null) mems = null; }
         return this.types;          
       }
       set{
@@ -14081,13 +14078,13 @@ namespace System.Compiler{
       }
     }
 
-    private TypeUnion(TypeNodeList types, Identifier tName){
+    private TypeUnion(List<TypeNode> types, Identifier tName){
       this.NodeType = NodeType.TypeUnion;
       this.Flags = TypeFlags.Public|TypeFlags.Sealed;
       this.Namespace = StandardIds.StructuralTypes;
       this.Name = tName;
       this.Types = types;
-      this.Interfaces = new InterfaceList(SystemTypes.TypeUnion);
+      this.Interfaces = new List<Interface>(SystemTypes.TypeUnion);
       this.isNormalized = true;
     }
     internal TypeUnion(NestedTypeProvider provideNestedTypes, TypeAttributeProvider provideAttributes, TypeMemberProvider provideMembers, object handle)
@@ -14096,7 +14093,7 @@ namespace System.Compiler{
       this.typeCode = ElementType.ValueType;
     }
 
-    internal static string/*!*/ BuildName(TypeNodeList types, string separator, ref TypeFlags visibility) {
+    internal static string/*!*/ BuildName(List<TypeNode> types, string separator, ref TypeFlags visibility) {
       int n = types == null ? 0 : types.Count;
       if (n == 0) return "EmtpyUnion";
       StringBuilder sb = new StringBuilder();
@@ -14110,7 +14107,7 @@ namespace System.Compiler{
         }
       return sb.ToString();
     }
-    public static bool AreNormalized(TypeNodeList/*!*/ types) {
+    public static bool AreNormalized(List<TypeNode>/*!*/ types) {
       int id = 0;
       for (int i = 0, n = types.Count; i < n; i++){
         TypeNode type = types[i];
@@ -14120,7 +14117,7 @@ namespace System.Compiler{
       }
       return true;
     }
-    public static TypeNodeList/*!*/ Normalize(TypeNodeList/*!*/ types) {
+    public static List<TypeNode>/*!*/ Normalize(List<TypeNode>/*!*/ types) {
       if (types.Count == 0) return types;
       Hashtable ht = new Hashtable();
       for (int i = 0, n = types.Count; i < n; i++){
@@ -14137,12 +14134,12 @@ namespace System.Compiler{
         }
       }
       SortedList list = new SortedList(ht);
-      TypeNodeList result = new TypeNodeList(list.Count);
+      List<TypeNode> result = new List<TypeNode>(list.Count);
       foreach (TypeNode t in list.Values)
         result.Add(t);
       return result;
     }
-    public static TypeUnion For(TypeNodeList types, Module module) {
+    public static TypeUnion For(List<TypeNode> types, Module module) {
       if (module == null) return null;   
       if (types != null && !TypeUnion.AreNormalized(types))   
         types = TypeUnion.Normalize(types);
@@ -14156,7 +14153,7 @@ namespace System.Compiler{
         //Mangled name is the same. But mangling is not unique, so check for equality.
         TypeUnion tu = t as TypeUnion;
         if (tu != null){
-          TypeNodeList ts = tu.Types;
+          List<TypeNode> ts = tu.Types;
           int n = types == null ? 0 : types.Count;
           bool goodMatch = ts != null && ts.Count == n;
           for (int i = 0; goodMatch && i < n; i++) {
@@ -14175,7 +14172,7 @@ namespace System.Compiler{
       module.StructurallyEquivalentType[tName.UniqueIdKey] = result;
       return result;
     }
-    public static TypeUnion For(TypeNodeList/*!*/ types, TypeNode/*!*/ referringType) {
+    public static TypeUnion For(List<TypeNode>/*!*/ types, TypeNode/*!*/ referringType) {
       Module module = referringType.DeclaringModule;
       if (module == null) return null;
       if (!TypeUnion.AreNormalized(types))   
@@ -14190,7 +14187,7 @@ namespace System.Compiler{
         //Mangled name is the same. But mangling is not unique, so check for equality.
         TypeUnion tu = t as TypeUnion;
         if (tu != null){
-          TypeNodeList ts = tu.Types;
+          List<TypeNode> ts = tu.Types;
           int n = types.Count;
           bool goodMatch = ts != null && ts.Count == n;
           for (int i = 0; goodMatch && i < n; i++) {
@@ -14234,13 +14231,13 @@ namespace System.Compiler{
       if (t == null) return false;
       return this.IsStructurallyEquivalentList(this.Types, t.Types);
     }
-    protected TypeNodeList structuralElementTypes;
-    public override TypeNodeList StructuralElementTypes{
+    protected List<TypeNode> structuralElementTypes;
+    public override List<TypeNode> StructuralElementTypes{
       get{
-        TypeNodeList result = this.structuralElementTypes;
+        List<TypeNode> result = this.structuralElementTypes;
         if (result != null) return result;
-        this.structuralElementTypes = result = new TypeNodeList(1);
-        TypeNodeList types = this.Types;
+        this.structuralElementTypes = result = new List<TypeNode>(1);
+        List<TypeNode> types = this.Types;
         for (int i = 0, n = types == null ? 0 : types.Count; i < n; i++){
           TypeNode t = types[i]; 
           if (t == null) continue;
@@ -14255,7 +14252,7 @@ namespace System.Compiler{
         TypeUnion result = this.unlabeledUnion;
         if (result != null) return result;
         if (this.Types == null) return this.unlabeledUnion = this;
-        TypeNodeList types = this.Types.Clone();
+        List<TypeNode> types = this.Types.Clone();
         bool noChange = true;
         for (int i = 0, n = types.Count; i < n; i++){
           TupleType tup = types[i] as TupleType;
@@ -14270,17 +14267,17 @@ namespace System.Compiler{
           return this.unlabeledUnion = new TypeUnion(types, Identifier.Empty);
       }
     }
-    public override MemberList Members{
+    public override List<Member> Members{
       get{
-        MemberList members = this.members;
+        List<Member> members = this.members;
         if (members == null || this.membersBeingPopulated){
           if (this.ProvideTypeMembers != null){
             lock(this){
               if (this.members != null) return this.members;
               members = base.Members;
-              MemberList coercions = this.ExplicitCoercionMethods;
+              List<Member> coercions = this.ExplicitCoercionMethods;
               int n = coercions == null ? 0 : coercions.Count;
-              TypeNodeList typeList = this.Types = new TypeNodeList(n);
+              List<TypeNode> typeList = this.Types = new List<TypeNode>(n);
               for (int i = 0; i < n; i++){
                 Method coercion = coercions[i] as Method;
                 if (coercion == null) continue;
@@ -14289,48 +14286,48 @@ namespace System.Compiler{
               return this.members;
             }
           }
-          members = this.Members = new MemberList();
+          members = this.Members = new List<Member>();
           //Value field
           members.Add(new Field(this, null, FieldFlags.Private, StandardIds.Value, CoreSystemTypes.Object, null));
           //Tag field
           members.Add(new Field(this, null, FieldFlags.Private, StandardIds.Tag, CoreSystemTypes.UInt32, null));
           //GetValue method (used to convert from subtype to supertype via FromObject on the superType)
-          ParameterList parameters = new ParameterList(0);
+          List<Parameter> parameters = new List<Parameter>(0);
           Method m = new Method(this, null, StandardIds.GetValue, parameters, CoreSystemTypes.Object, null);
           m.Flags = MethodFlags.SpecialName|MethodFlags.Public; m.CallingConvention = CallingConventionFlags.HasThis;
           members.Add(m);
           //GetTag method (used in typeswitch)
-          parameters = new ParameterList(0);
+          parameters = new List<Parameter>(0);
           m = new Method(this, null, StandardIds.GetTag, parameters, CoreSystemTypes.UInt32, null);
           m.Flags = MethodFlags.SpecialName|MethodFlags.Public; m.CallingConvention = CallingConventionFlags.HasThis;
           members.Add(m);
           //GetTagAsType method (used to convert from subtype to supertype via FromObject on the superType)
-          parameters = new ParameterList(0);
+          parameters = new List<Parameter>(0);
           m = new Method(this, null, StandardIds.GetTagAsType, parameters, CoreSystemTypes.Type, null);
           m.Flags = MethodFlags.SpecialName|MethodFlags.Public; m.CallingConvention = CallingConventionFlags.HasThis;
           members.Add(m);
           //GetType
-          parameters = new ParameterList(0);
+          parameters = new List<Parameter>(0);
           m = new Method(this, null, StandardIds.GetType, parameters, CoreSystemTypes.Type, null);
           m.Flags = MethodFlags.Public; m.CallingConvention = CallingConventionFlags.HasThis;
           members.Add(m);
           //FromObject
-          parameters = new ParameterList(2);
+          parameters = new List<Parameter>(2);
           parameters.Add(new Parameter(null, ParameterFlags.None, StandardIds.Value, CoreSystemTypes.Object, null, null));
           parameters.Add(new Parameter(null, ParameterFlags.None, StandardIds.TagType, CoreSystemTypes.Type, null, null));
           m = new Method(this, null, StandardIds.FromObject, parameters, this, null); 
           m.Flags = MethodFlags.Static|MethodFlags.SpecialName|MethodFlags.Public;
           members.Add(m);
           //coercion operators
-          TypeNodeList types = this.Types;
+          List<TypeNode> types = this.Types;
           for (int i = 0, n = types.Count; i < n; i++){
             TypeNode t = types[i];
-            parameters = new ParameterList(1);
+            parameters = new List<Parameter>(1);
             parameters.Add(new Parameter(null, ParameterFlags.None, StandardIds.Value, t, null, null));
             m = new Method(this, null, StandardIds.opImplicit, parameters, this, null); 
             m.Flags = MethodFlags.Static|MethodFlags.SpecialName|MethodFlags.Public;
             members.Add(m);
-            parameters = new ParameterList(1);
+            parameters = new List<Parameter>(1);
             parameters.Add(new Parameter(null, ParameterFlags.None, StandardIds.Value, this, null, null));
             m = new Method(this, null, StandardIds.opExplicit, parameters, t, null); 
             m.Flags = MethodFlags.Static|MethodFlags.SpecialName|MethodFlags.Public;
@@ -14352,28 +14349,28 @@ namespace System.Compiler{
       if (objectGetType == null || typeGetTypeFromHandle == null || typeGetTypeHandle == null || runtimeTypeHandleGetValue == null) {
         Debug.Fail(""); return;
       }
-      MemberList members = this.members;
+      List<Member> members = this.members;
       if (members == null) return;
       Field valueField = (Field)members[0];
       Field tagField = (Field)members[1];
       //GetValue
       Method getValueMethod = (Method)members[2];
-      StatementList statements = new StatementList(1);
+      List<Statement> statements = new List<Statement>(1);
       statements.Add(new Return(new MemberBinding(getValueMethod.ThisParameter, valueField)));
       getValueMethod.Body = new Block(statements);
       //GetTag
       Method getTagMethod = (Method)members[3];
-      statements = new StatementList(1);
+      statements = new List<Statement>(1);
       statements.Add(new Return(new MemberBinding(getTagMethod.ThisParameter, tagField)));
       getTagMethod.Body = new Block(statements);
       //GetTagAsType
       Method getTagAsTypeMethod = (Method)members[4];
-      TypeNodeList types = this.Types;
+      List<TypeNode> types = this.Types;
       int n = types.Count;
       Block returnBlock = new Block();
-      statements = new StatementList(n+4);
+      statements = new List<Statement>(n+4);
       getTagAsTypeMethod.Body = new Block(statements);
-      BlockList targets = new BlockList(n);
+      List<Block> targets = new List<Block>(n);
       SwitchInstruction sw = new SwitchInstruction(new MemberBinding(getTagAsTypeMethod.ThisParameter, tagField), targets);
       statements.Add(sw);
       //TODO: throw an exception
@@ -14381,18 +14378,18 @@ namespace System.Compiler{
       statements.Add(returnBlock);
       for (int i = 0; i < n; i++){
         TypeNode t = types[i];
-        StatementList ldToken = new StatementList(2);
+        List<Statement> ldToken = new List<Statement>(2);
         ldToken.Add(new ExpressionStatement(new UnaryExpression(new Literal(t, CoreSystemTypes.Type), NodeType.Ldtoken)));
         ldToken.Add(new Branch(null, returnBlock));
         Block ldtokBlock = new Block(ldToken);
         targets.Add(ldtokBlock);
         statements.Add(ldtokBlock);
       }
-      statements = returnBlock.Statements = new StatementList(1);
+      statements = returnBlock.Statements = new List<Statement>(1);
       statements.Add(new Return(new MethodCall(new MemberBinding(null, typeGetTypeFromHandle), null)));
       //GetType
       Method getTypeMethod = (Method)members[5];
-      statements = new StatementList(4);
+      statements = new List<Statement>(4);
       getTypeMethod.Body = new Block(statements);
       MemberBinding mb = new MemberBinding(getTypeMethod.ThisParameter, valueField);
       Local loc = new Local(CoreSystemTypes.Object);
@@ -14405,7 +14402,7 @@ namespace System.Compiler{
       //FromObject
       Method fromObjectMethod = (Method)members[6];
       fromObjectMethod.InitLocals = true;
-      statements = new StatementList(n+8); //TODO: get the right expression
+      statements = new List<Statement>(n+8); //TODO: get the right expression
       fromObjectMethod.Body = new Block(statements);
       MethodCall getTypeHandle = new MethodCall(new MemberBinding(fromObjectMethod.Parameters[1], typeGetTypeHandle), null, NodeType.Callvirt);
       Local handle = new Local(Identifier.Empty, CoreSystemTypes.RuntimeTypeHandle);
@@ -14421,7 +14418,7 @@ namespace System.Compiler{
       Block setTag = new Block();
       for (int i = 0; i < n; i++){
         TypeNode t = types[i];
-        StatementList stats = curr.Statements = new StatementList(4);
+        List<Statement> stats = curr.Statements = new List<Statement>(4);
         UnaryExpression ldtok = new UnaryExpression(new Literal(t, CoreSystemTypes.Type), NodeType.Ldtoken);
         stats.Add(new AssignmentStatement(handle, ldtok));
         getValue = new MethodCall(new MemberBinding(new UnaryExpression(handle, NodeType.AddressOf), runtimeTypeHandleGetValue), null);
@@ -14447,7 +14444,7 @@ namespace System.Compiler{
         bool isValueType = t.IsValueType;
         MemberBinding tExpr = new MemberBinding(null, t);
         Method opImplicit = (Method)members[7+i*2];
-        opImplicit.Body = new Block(statements = new StatementList(3));
+        opImplicit.Body = new Block(statements = new List<Statement>(3));
         statements.Add(new AssignmentStatement(new MemberBinding(resultAddr, tagField), new Literal(i, CoreSystemTypes.UInt32)));
         Parameter p0 = opImplicit.Parameters[0];
         p0.Type = t;
@@ -14457,7 +14454,7 @@ namespace System.Compiler{
         statements.Add(new Return(result));
         Method opExplicit = (Method)members[8+i*2];
         opExplicit.ReturnType = t;
-        opExplicit.Body = new Block(statements = new StatementList(1));
+        opExplicit.Body = new Block(statements = new List<Statement>(1));
         Expression loadValue = new MemberBinding(new UnaryExpression(opExplicit.Parameters[0], NodeType.AddressOf), valueField);
         if (isValueType)
           val = new AddressDereference(new BinaryExpression(loadValue, tExpr, NodeType.Unbox), t);
@@ -14483,7 +14480,7 @@ namespace System.Compiler{
       this.Constraint = constraint;
       this.Namespace = StandardIds.StructuralTypes;
       this.Name = Identifier.For("Constrained type:"+base.UniqueKey);
-      this.Interfaces = new InterfaceList(SystemTypes.ConstrainedType);
+      this.Interfaces = new List<Interface>(SystemTypes.ConstrainedType);
     }
     public ConstrainedType(TypeNode/*!*/ underlyingType, Expression/*!*/ constraint, TypeNode/*!*/ declaringType) {
       this.NodeType = NodeType.ConstrainedType;
@@ -14492,7 +14489,7 @@ namespace System.Compiler{
       this.Constraint = constraint;
       this.Namespace = StandardIds.StructuralTypes;
       this.Name = Identifier.For("Constrained type:"+base.UniqueKey);
-      this.Interfaces = new InterfaceList(SystemTypes.ConstrainedType);
+      this.Interfaces = new List<Interface>(SystemTypes.ConstrainedType);
       this.DeclaringType = declaringType;
       this.DeclaringModule = declaringType.DeclaringModule;
       declaringType.Members.Add(this);
@@ -14505,30 +14502,30 @@ namespace System.Compiler{
     public override bool IsStructural{
       get{return true;}
     }
-    protected TypeNodeList structuralElementTypes;
-    public override TypeNodeList StructuralElementTypes{
+    protected List<TypeNode> structuralElementTypes;
+    public override List<TypeNode> StructuralElementTypes{
       get{
-        TypeNodeList result = this.structuralElementTypes;
+        List<TypeNode> result = this.structuralElementTypes;
         if (result != null) return result;
-        this.structuralElementTypes = result = new TypeNodeList(1);
+        this.structuralElementTypes = result = new List<TypeNode>(1);
         result.Add(this.UnderlyingType);
         return result;
       }
     }
     public virtual void ProvideMembers(){
-      MemberList members = this.members = new MemberList();
+      List<Member> members = this.members = new List<Member>();
       //Value field
       Field valueField = new Field(this, null, FieldFlags.Assembly, StandardIds.Value, this.underlyingType, null);
       members.Add(valueField);
       //Implicit conversion from this type to underlying type
-      ParameterList parameters = new ParameterList(1);
+      List<Parameter> parameters = new List<Parameter>(1);
       Parameter valuePar = new Parameter(null, ParameterFlags.None, StandardIds.Value, this, null, null);
       parameters.Add(valuePar);
       Method toUnderlying = new Method(this, null, StandardIds.opImplicit, parameters, this.underlyingType, null); 
       toUnderlying.Flags = MethodFlags.Static|MethodFlags.SpecialName|MethodFlags.Public;
       members.Add(toUnderlying);
       //Implicit conversion from underlying type to this type
-      parameters = new ParameterList(1);
+      parameters = new List<Parameter>(1);
       parameters.Add(valuePar = new Parameter(null, ParameterFlags.None, StandardIds.Value, this.underlyingType, null, null));
       Method fromUnderlying = new Method(this, null, StandardIds.opImplicit, parameters, this, null); 
       fromUnderlying.Flags = MethodFlags.Static|MethodFlags.SpecialName|MethodFlags.Public;
@@ -14536,45 +14533,45 @@ namespace System.Compiler{
       this.AddCoercionWrappers(this.UnderlyingType.ExplicitCoercionMethods, StandardIds.opExplicit, fromUnderlying, toUnderlying);
       this.AddCoercionWrappers(this.UnderlyingType.ImplicitCoercionMethods, StandardIds.opImplicit, fromUnderlying, toUnderlying);
     }
-    private void AddCoercionWrappers(MemberList/*!*/ coercions, Identifier/*!*/ id, Method/*!*/ fromUnderlying, Method/*!*/ toUnderlying) {
-      MemberList members = this.members;
+    private void AddCoercionWrappers(List<Member>/*!*/ coercions, Identifier/*!*/ id, Method/*!*/ fromUnderlying, Method/*!*/ toUnderlying) {
+      List<Member> members = this.members;
       for (int i = 0, n = coercions.Count; i < n; i++){
         Method coercion = coercions[i] as Method;
         if (coercion == null || coercion.Parameters == null || coercion.Parameters.Count != 1) continue;
-        ParameterList parameters = new ParameterList(1);
+        List<Parameter> parameters = new List<Parameter>(1);
         Parameter valuePar = new Parameter(null, ParameterFlags.None, StandardIds.Value, null, null, null);
         parameters.Add(valuePar);
         Method m = new Method(this, null, id, parameters, null, null);
         m.Flags = MethodFlags.Static|MethodFlags.SpecialName|MethodFlags.Public;
         Expression arg = valuePar;
-        MethodCall call = new MethodCall(new MemberBinding(null, coercion), new ExpressionList(arg));
+        MethodCall call = new MethodCall(new MemberBinding(null, coercion), new List<Expression>(arg));
         if (coercion.ReturnType == this.UnderlyingType){
           m.ReturnType = this;
           valuePar.Type = coercion.Parameters[0].Type;
-          call = new MethodCall(new MemberBinding(null, fromUnderlying), new ExpressionList(call));
+          call = new MethodCall(new MemberBinding(null, fromUnderlying), new List<Expression>(call));
         }else{
           m.ReturnType = coercion.ReturnType;
           valuePar.Type = this;
-          call.Operands[0] = new MethodCall(new MemberBinding(null, toUnderlying), new ExpressionList(arg));
+          call.Operands[0] = new MethodCall(new MemberBinding(null, toUnderlying), new List<Expression>(arg));
         }
-        m.Body = new Block(new StatementList(new Return(call)));
+        m.Body = new Block(new List<Statement>(new Return(call)));
         members.Add(m);
       }
     }
     public void ProvideBodiesForMethods(){
-      MemberList members = this.members;
+      List<Member> members = this.members;
       if (members == null) return;
       Field valueField = (Field)members[0];
       //Implicit conversion from this type to underlying type
       Method toUnderlying = (Method)members[1];
       Parameter valuePar = toUnderlying.Parameters[0];
-      StatementList statements = new StatementList(1);
+      List<Statement> statements = new List<Statement>(1);
       statements.Add(new Return(new MemberBinding(new UnaryExpression(valuePar, NodeType.AddressOf), valueField)));
       toUnderlying.Body = new Block(statements);
       //Implicit conversion from underlying type to this type
       Method fromUnderlying = (Method)members[2];
       valuePar = fromUnderlying.Parameters[0];
-      statements = new StatementList(4);
+      statements = new List<Statement>(4);
       fromUnderlying.Body = new Block(statements);
       Block succeed = new Block();
       Local temp = new Local(Identifier.Empty, this);
@@ -14699,12 +14696,12 @@ namespace System.Compiler{
         return this.ModifiedType.IsTemplateParameter;
       }
     }
-    protected TypeNodeList structuralElementTypes;
-    public override TypeNodeList StructuralElementTypes{
+    protected List<TypeNode> structuralElementTypes;
+    public override List<TypeNode> StructuralElementTypes{
       get{
-        TypeNodeList result = this.structuralElementTypes;
+        List<TypeNode> result = this.structuralElementTypes;
         if (result != null) return result;
-        this.structuralElementTypes = result = new TypeNodeList(2);
+        this.structuralElementTypes = result = new List<TypeNode>(2);
         result.Add(this.ModifiedType);
         result.Add(this.Modifier);
         return result;
@@ -14731,7 +14728,7 @@ namespace System.Compiler{
       return (OptionalModifier)modified.GetModified(modifier, true);
     }
 #if !NoXml
-    internal override void AppendDocumentIdMangledName(StringBuilder/*!*/ sb, TypeNodeList methodTypeParameters, TypeNodeList typeParameters) {
+    internal override void AppendDocumentIdMangledName(StringBuilder/*!*/ sb, List<TypeNode> methodTypeParameters, List<TypeNode> typeParameters) {
       this.ModifiedType.AppendDocumentIdMangledName(sb, methodTypeParameters, typeParameters);
       sb.Append('!');
       this.Modifier.AppendDocumentIdMangledName(sb, methodTypeParameters, typeParameters);
@@ -14746,7 +14743,7 @@ namespace System.Compiler{
       return (RequiredModifier)modified.GetModified(modifier, false);
     }
 #if !NoXml
-    internal override void AppendDocumentIdMangledName(StringBuilder/*!*/ sb, TypeNodeList methodTypeParameters, TypeNodeList typeParameters) {
+    internal override void AppendDocumentIdMangledName(StringBuilder/*!*/ sb, List<TypeNode> methodTypeParameters, List<TypeNode> typeParameters) {
       this.ModifiedType.AppendDocumentIdMangledName(sb, methodTypeParameters, typeParameters);
       sb.Append('|');
       this.Modifier.AppendDocumentIdMangledName(sb, methodTypeParameters, typeParameters);
@@ -14803,7 +14800,7 @@ namespace System.Compiler{
   }
 #endif  
   public class FunctionPointer : TypeNode{
-    internal FunctionPointer(TypeNodeList parameterTypes, TypeNode/*!*/ returnType, Identifier name)
+    internal FunctionPointer(List<TypeNode> parameterTypes, TypeNode/*!*/ returnType, Identifier name)
       : base(NodeType.FunctionPointer){
       this.Name = name;
       this.Namespace = returnType.Namespace;
@@ -14817,8 +14814,8 @@ namespace System.Compiler{
       get{return this.callingConvention;}
       set{this.callingConvention = value;}
     }
-    private TypeNodeList parameterTypes;
-    public TypeNodeList ParameterTypes{
+    private List<TypeNode> parameterTypes;
+    public List<TypeNode> ParameterTypes{
       get{return this.parameterTypes;}
       set{this.parameterTypes = value;}
     }
@@ -14838,14 +14835,14 @@ namespace System.Compiler{
     public override bool IsStructural{
       get{return true;}
     }
-    protected TypeNodeList structuralElementTypes;
-    public override TypeNodeList StructuralElementTypes{
+    protected List<TypeNode> structuralElementTypes;
+    public override List<TypeNode> StructuralElementTypes{
       get{
-        TypeNodeList result = this.structuralElementTypes;
+        List<TypeNode> result = this.structuralElementTypes;
         if (result != null) return result;
-        this.structuralElementTypes = result = new TypeNodeList();
+        this.structuralElementTypes = result = new List<TypeNode>();
         result.Add(this.ReturnType);
-        TypeNodeList ptypes = this.ParameterTypes;
+        List<TypeNode> ptypes = this.ParameterTypes;
         for (int i = 0, n = ptypes == null ? 0 : ptypes.Count; i < n; i++){
           TypeNode ptype = ptypes[i]; 
           if (ptype == null) continue;
@@ -14865,7 +14862,7 @@ namespace System.Compiler{
       if (this.ReturnType != t.ReturnType && !this.ReturnType.IsStructurallyEquivalentTo(t.ReturnType, typeSubstitution)) return false;
       return this.IsStructurallyEquivalentList(this.ParameterTypes, t.ParameterTypes, typeSubstitution);
     }
-    public static FunctionPointer/*!*/ For(TypeNodeList/*!*/ parameterTypes, TypeNode/*!*/ returnType) {
+    public static FunctionPointer/*!*/ For(List<TypeNode>/*!*/ parameterTypes, TypeNode/*!*/ returnType) {
       Module mod = returnType.DeclaringModule;
       if (mod == null) { Debug.Fail(""); mod = new Module(); }
       StringBuilder sb = new StringBuilder("function pointer ");
@@ -14898,7 +14895,7 @@ namespace System.Compiler{
       }
       return result;      
     }
-    private static bool ParameterTypesAreEquivalent(TypeNodeList list1, TypeNodeList list2){
+    private static bool ParameterTypesAreEquivalent(List<TypeNode> list1, List<TypeNode> list2){
       if (list1 == null || list2 == null) return list1 == list2;
       int n = list1.Count;
       if (n != list2.Count) return false;
@@ -14952,22 +14949,22 @@ namespace System.Compiler{
       this.NodeType = NodeType.ClassExpression;
       this.Expression = expression;
     }
-    public ClassExpression(Expression expression, TypeNodeList templateArguments){
+    public ClassExpression(Expression expression, List<TypeNode> templateArguments){
       this.NodeType = NodeType.ClassExpression;
       this.Expression = expression;
       this.TemplateArguments = templateArguments;
-      if (templateArguments != null) this.TemplateArgumentExpressions = templateArguments.Clone();
+      if (templateArguments != null) this.TemplateArgumentExpressions = templateArguments.ToList();
     }
     public ClassExpression(Expression expression, SourceContext sctx){
       this.NodeType = NodeType.ClassExpression;
       this.Expression = expression;
       this.SourceContext = sctx;
     }
-    public ClassExpression(Expression expression, TypeNodeList templateArguments, SourceContext sctx) {
+    public ClassExpression(Expression expression, List<TypeNode> templateArguments, SourceContext sctx) {
       this.NodeType = NodeType.ClassExpression;
       this.Expression = expression;
       this.TemplateArguments = this.TemplateArgumentExpressions = templateArguments;
-      if (templateArguments != null) this.TemplateArgumentExpressions = templateArguments.Clone();
+      if (templateArguments != null) this.TemplateArgumentExpressions = templateArguments.ToList();
       this.SourceContext = sctx;
     }
   }
@@ -15006,14 +15003,14 @@ namespace System.Compiler{
     }
   }
   public class FunctionTypeExpression : TypeNode, ISymbolicTypeReference{
-    public ParameterList Parameters;
+    public List<Parameter> Parameters;
     public TypeNode ReturnType;
-    public FunctionTypeExpression(TypeNode returnType, ParameterList parameters)
+    public FunctionTypeExpression(TypeNode returnType, List<Parameter> parameters)
       : base(NodeType.FunctionTypeExpression){
       this.ReturnType = returnType;
       this.Parameters = parameters;
     }
-    public FunctionTypeExpression(TypeNode returnType, ParameterList parameters, SourceContext sctx)
+    public FunctionTypeExpression(TypeNode returnType, List<Parameter> parameters, SourceContext sctx)
       : base(NodeType.FunctionTypeExpression){
       this.ReturnType = returnType;
       this.Parameters = parameters;
@@ -15137,36 +15134,36 @@ namespace System.Compiler{
     }
   }
   public class TupleTypeExpression : TypeNode, ISymbolicTypeReference{
-    public FieldList Domains;
-    public TupleTypeExpression(FieldList domains)
+    public List<Field> Domains;
+    public TupleTypeExpression(List<Field> domains)
       : base(NodeType.TupleTypeExpression){
       this.Domains = domains;
     }
-    public TupleTypeExpression(FieldList domains, SourceContext sctx)
+    public TupleTypeExpression(List<Field> domains, SourceContext sctx)
       : base(NodeType.TupleTypeExpression){
       this.Domains = domains;
       this.SourceContext = sctx;
     }
   }
   public class TypeIntersectionExpression: TypeNode, ISymbolicTypeReference{
-    public TypeNodeList Types;
-    public TypeIntersectionExpression(TypeNodeList types)
+    public List<TypeNode> Types;
+    public TypeIntersectionExpression(List<TypeNode> types)
       : base(NodeType.TypeIntersectionExpression){
       this.Types = types;
     }
-    public TypeIntersectionExpression(TypeNodeList types, SourceContext sctx)
+    public TypeIntersectionExpression(List<TypeNode> types, SourceContext sctx)
       : base(NodeType.TypeIntersectionExpression){
       this.Types = types;
       this.SourceContext = sctx;
     }
   }
   public class TypeUnionExpression: TypeNode, ISymbolicTypeReference{
-    public TypeNodeList Types;
-    public TypeUnionExpression(TypeNodeList types)
+    public List<TypeNode> Types;
+    public TypeUnionExpression(List<TypeNode> types)
       : base(NodeType.TypeUnionExpression){
       this.Types = types;
     }
-    public TypeUnionExpression(TypeNodeList types, SourceContext sctx)
+    public TypeUnionExpression(List<TypeNode> types, SourceContext sctx)
       : base(NodeType.TypeUnionExpression){
       this.Types = types;
       this.SourceContext = sctx;
@@ -15180,7 +15177,7 @@ namespace System.Compiler{
       : base(NodeType.TypeExpression){
       this.Expression = expression;
     }
-    public TypeExpression(Expression expression, TypeNodeList templateArguments)
+    public TypeExpression(Expression expression, List<TypeNode> templateArguments)
       : base(NodeType.TypeExpression){
       this.Expression = expression;
       this.templateArguments = this.TemplateArgumentExpressions = templateArguments;
@@ -15195,7 +15192,7 @@ namespace System.Compiler{
       this.Expression = expression;
       this.SourceContext = sctx;
     }
-    public TypeExpression(Expression expression, TypeNodeList templateArguments, SourceContext sctx)
+    public TypeExpression(Expression expression, List<TypeNode> templateArguments, SourceContext sctx)
       : base(NodeType.TypeExpression){
       this.Expression = expression;
       this.templateArguments = this.TemplateArgumentExpressions = templateArguments;
@@ -15259,7 +15256,7 @@ namespace System.Compiler{
     }
   }
   public class ArglistArgumentExpression : NaryExpression {
-    public ArglistArgumentExpression(ExpressionList args, SourceContext sctx) : base(args, NodeType.ArglistArgumentExpression) {
+    public ArglistArgumentExpression(List<Expression> args, SourceContext sctx) : base(args, NodeType.ArglistArgumentExpression) {
       this.SourceContext = sctx;
     }
   }
@@ -15318,8 +15315,8 @@ namespace System.Compiler{
       else
         enumeratorAdapter = EnumeratorAdapter.For(id, sGetEnumeratorReturnType, tGetEnumeratorReturnType, module, coercer, sctx);
       if (enumeratorAdapter == null) return null;
-      InterfaceList interfaces = new InterfaceList(targetStream);
-      MemberList members = new MemberList(3);
+      List<Interface> interfaces = new List<Interface>(targetStream);
+      List<Member> members = new List<Member>(3);
       Class adapter = new Class(module, null, null, TypeFlags.Sealed, targetStream.Namespace, id, CoreSystemTypes.Object, interfaces, members);
       adapter.IsNormalized = true;
       if (referringType == null ||
@@ -15340,26 +15337,26 @@ namespace System.Compiler{
       //Constructor
       This ThisParameter = new This(adapter);
       Parameter par = new Parameter(null, ParameterFlags.None, StandardIds.Value, sourceStream, null, null);
-      StatementList statements = new StatementList(3);
+      List<Statement> statements = new List<Statement>(3);
       InstanceInitializer cstr = CoreSystemTypes.Object.GetConstructor();
       if (cstr == null) { Debug.Fail(""); return adapter; }
-      MethodCall mcall = new MethodCall(new MemberBinding(ThisParameter, cstr), new ExpressionList(0), NodeType.Call, CoreSystemTypes.Void);
+      MethodCall mcall = new MethodCall(new MemberBinding(ThisParameter, cstr), new List<Expression>(0), NodeType.Call, CoreSystemTypes.Void);
       statements.Add(new ExpressionStatement(mcall));
       statements.Add(new AssignmentStatement(new MemberBinding(ThisParameter, ssField), par));
       statements.Add(new Return());
-      InstanceInitializer acons = new InstanceInitializer(adapter, null, new ParameterList(par), new Block(statements));
+      InstanceInitializer acons = new InstanceInitializer(adapter, null, new List<Parameter>(par), new Block(statements));
       acons.Flags |= MethodFlags.Public;
       acons.ThisParameter = ThisParameter;
       members.Add(acons);
 
       //GetEnumerator
       ThisParameter = new This(adapter);
-      statements = new StatementList(1);
+      statements = new List<Statement>(1);
       mcall = new MethodCall(new MemberBinding(new MemberBinding(ThisParameter, ssField), sGetEnumerator),
-        new ExpressionList(0), NodeType.Callvirt, sGetEnumerator.ReturnType);
+        new List<Expression>(0), NodeType.Callvirt, sGetEnumerator.ReturnType);
       cstr = enumeratorAdapter.GetConstructor(sGetEnumerator.ReturnType);
       if (cstr == null) { Debug.Fail(""); return adapter; }
-      Construct constr = new Construct(new MemberBinding(null, cstr), new ExpressionList(mcall));
+      Construct constr = new Construct(new MemberBinding(null, cstr), new List<Expression>(mcall));
       statements.Add(new Return(constr));
       Method getEnumerator = new Method(adapter, null, StandardIds.GetEnumerator, null, tGetEnumerator.ReturnType, new Block(statements));
       getEnumerator.Flags = MethodFlags.Public | MethodFlags.Virtual | MethodFlags.NewSlot | MethodFlags.HideBySig;
@@ -15371,13 +15368,13 @@ namespace System.Compiler{
       Method ieGetEnumerator = SystemTypes.IEnumerable.GetMethod(StandardIds.GetEnumerator);
       if (ieGetEnumerator == null) { Debug.Fail(""); return adapter; }
       ThisParameter = new This(adapter);
-      statements = new StatementList(1);
+      statements = new List<Statement>(1);
       mcall = new MethodCall(new MemberBinding(new MemberBinding(ThisParameter, ssField), ieGetEnumerator),
-        new ExpressionList(0), NodeType.Callvirt, SystemTypes.IEnumerator);
+        new List<Expression>(0), NodeType.Callvirt, SystemTypes.IEnumerator);
       statements.Add(new Return(mcall));
       getEnumerator = new Method(adapter, null, StandardIds.IEnumerableGetEnumerator, null, SystemTypes.IEnumerator, new Block(statements));
       getEnumerator.ThisParameter = ThisParameter;
-      getEnumerator.ImplementedInterfaceMethods = new MethodList(ieGetEnumerator);
+      getEnumerator.ImplementedInterfaceMethods = new List<Method>(ieGetEnumerator);
       getEnumerator.CallingConvention = CallingConventionFlags.HasThis;
       getEnumerator.Flags = MethodFlags.Private | MethodFlags.Virtual | MethodFlags.SpecialName;
       members.Add(getEnumerator);
@@ -15407,8 +15404,8 @@ namespace System.Compiler{
       Expression curr = coercer(loc, tGetCurrent.ReturnType, null);
       if (curr == null) return null;
       id = Identifier.For("Enumerator"+id.ToString());
-      InterfaceList interfaces = new InterfaceList(targetIEnumerator, SystemTypes.IDisposable);
-      MemberList members = new MemberList(5);
+      List<Interface> interfaces = new List<Interface>(targetIEnumerator, SystemTypes.IDisposable);
+      List<Member> members = new List<Member>(5);
       Class adapter = new Class(module, null, null, TypeFlags.Public, targetIEnumerator.Namespace, id, CoreSystemTypes.Object, interfaces, members);
       adapter.IsNormalized = true;
       if (referringType == null ||
@@ -15426,25 +15423,25 @@ namespace System.Compiler{
 
       //Constructor
       Parameter par = new Parameter(null, ParameterFlags.None, StandardIds.Value, sourceIEnumerator, null, null);
-      StatementList statements = new StatementList(3);
+      List<Statement> statements = new List<Statement>(3);
       This ThisParameter = new This(adapter);
       InstanceInitializer constr = CoreSystemTypes.Object.GetConstructor();
       if (constr == null) { Debug.Fail(""); return null; }
       MethodCall mcall = new MethodCall(new MemberBinding(ThisParameter, constr),
-        new ExpressionList(0), NodeType.Call, CoreSystemTypes.Void);
+        new List<Expression>(0), NodeType.Call, CoreSystemTypes.Void);
       statements.Add(new ExpressionStatement(mcall));
       statements.Add(new AssignmentStatement(new MemberBinding(ThisParameter, seField), par));
       statements.Add(new Return());
-      InstanceInitializer acons = new InstanceInitializer(adapter, null, new ParameterList(par), new Block(statements));
+      InstanceInitializer acons = new InstanceInitializer(adapter, null, new List<Parameter>(par), new Block(statements));
       acons.Flags |= MethodFlags.Public;
       acons.ThisParameter = ThisParameter;
       members.Add(acons);
 
       //get_Current
-      statements = new StatementList(2);
+      statements = new List<Statement>(2);
       ThisParameter = new This(adapter);
       mcall = new MethodCall(new MemberBinding(new MemberBinding(ThisParameter, seField), sGetCurrent),
-        new ExpressionList(0), NodeType.Callvirt, sGetCurrent.ReturnType);
+        new List<Expression>(0), NodeType.Callvirt, sGetCurrent.ReturnType);
       mcall.SourceContext = sctx;
       statements.Add(new AssignmentStatement(loc, mcall));
       statements.Add(new Return(curr));
@@ -15455,9 +15452,9 @@ namespace System.Compiler{
       members.Add(getCurrent);
 
       //IEnumerator.GetCurrent
-      statements = new StatementList(1);
+      statements = new List<Statement>(1);
       ThisParameter = new This(adapter);
-      MethodCall callGetCurrent = new MethodCall(new MemberBinding(ThisParameter, getCurrent), new ExpressionList(0), NodeType.Call, getCurrent.ReturnType);
+      MethodCall callGetCurrent = new MethodCall(new MemberBinding(ThisParameter, getCurrent), new List<Expression>(0), NodeType.Call, getCurrent.ReturnType);
       if (getCurrent.ReturnType.IsValueType) {
         MemberBinding etExpr = new MemberBinding(null, getCurrent.ReturnType);
         statements.Add(new Return(new BinaryExpression(callGetCurrent, etExpr, NodeType.Box, CoreSystemTypes.Object)));
@@ -15465,7 +15462,7 @@ namespace System.Compiler{
         statements.Add(new Return(callGetCurrent));
       Method ieGetCurrent = new Method(adapter, null, StandardIds.IEnumeratorGetCurrent, null, CoreSystemTypes.Object, new Block(statements));
       ieGetCurrent.ThisParameter = ThisParameter;
-      ieGetCurrent.ImplementedInterfaceMethods = new MethodList(SystemTypes.IEnumerator.GetMethod(StandardIds.getCurrent));
+      ieGetCurrent.ImplementedInterfaceMethods = new List<Method>(SystemTypes.IEnumerator.GetMethod(StandardIds.getCurrent));
       ieGetCurrent.CallingConvention = CallingConventionFlags.HasThis;
       ieGetCurrent.Flags = MethodFlags.Private | MethodFlags.Virtual | MethodFlags.SpecialName;
       members.Add(ieGetCurrent);
@@ -15473,24 +15470,24 @@ namespace System.Compiler{
       //IEnumerator.Reset
       Method ieReset = SystemTypes.IEnumerator.GetMethod(StandardIds.Reset);
       if (ieReset == null) { Debug.Fail(""); return null; }
-      statements = new StatementList(2);
+      statements = new List<Statement>(2);
       ThisParameter = new This(adapter);
-      MethodCall callSourceReset = new MethodCall(new MemberBinding(ThisParameter, ieReset), new ExpressionList(0), NodeType.Callvirt, CoreSystemTypes.Object);
+      MethodCall callSourceReset = new MethodCall(new MemberBinding(ThisParameter, ieReset), new List<Expression>(0), NodeType.Callvirt, CoreSystemTypes.Object);
       statements.Add(new ExpressionStatement(callSourceReset));
       statements.Add(new Return());
       Method reset = new Method(adapter, null, StandardIds.IEnumeratorReset, null, CoreSystemTypes.Void, new Block(statements));
       reset.ThisParameter = ThisParameter;
-      reset.ImplementedInterfaceMethods = new MethodList(ieReset);
+      reset.ImplementedInterfaceMethods = new List<Method>(ieReset);
       reset.CallingConvention = CallingConventionFlags.HasThis;
       reset.Flags = MethodFlags.Private | MethodFlags.Virtual | MethodFlags.SpecialName;
       members.Add(reset);
 
       //MoveNext
       if (sMoveNext == null) { Debug.Fail(""); return null; }
-      statements = new StatementList(1);
+      statements = new List<Statement>(1);
       ThisParameter = new This(adapter);
       mcall = new MethodCall(new MemberBinding(new MemberBinding(ThisParameter, seField), sMoveNext),
-        new ExpressionList(0), NodeType.Callvirt, CoreSystemTypes.Boolean);
+        new List<Expression>(0), NodeType.Callvirt, CoreSystemTypes.Boolean);
       statements.Add(new Return(mcall));
       Method moveNext = new Method(adapter, null, StandardIds.MoveNext, null, CoreSystemTypes.Boolean, new Block(statements));
       moveNext.Flags = MethodFlags.Public | MethodFlags.Virtual | MethodFlags.NewSlot | MethodFlags.HideBySig;
@@ -15499,7 +15496,7 @@ namespace System.Compiler{
       members.Add(moveNext);
 
       //IDispose.Dispose
-      statements = new StatementList(1);
+      statements = new List<Statement>(1);
       //TODO: call Dispose on source enumerator
       statements.Add(new Return());
       Method dispose = new Method(adapter, null, StandardIds.Dispose, null, CoreSystemTypes.Void, new Block(statements));
@@ -15521,12 +15518,12 @@ namespace System.Compiler{
     private MethodFlags handlerFlags;
     private Method handlerRemover;
     private TypeNode handlerType;
-    private MethodList otherMethods;
+    private List<Method> otherMethods;
 #if !MinimalReader
     public TypeNode HandlerTypeExpression;
     /// <summary>The list of types (just one in C#) that contain abstract or virtual events that are explicity implemented or overridden by this event.</summary>
-    public TypeNodeList ImplementedTypes;
-    public TypeNodeList ImplementedTypeExpressions;
+    public List<TypeNode> ImplementedTypes;
+    public List<TypeNode> ImplementedTypeExpressions;
     /// <summary>Provides a delegate instance that is added to the event upon initialization.</summary>
     public Expression InitialHandler;
     public Field BackingField;
@@ -15539,7 +15536,7 @@ namespace System.Compiler{
       : base(NodeType.Event){
     }
 #if !MinimalReader
-    public Event(TypeNode declaringType, AttributeList attributes, EventFlags flags, Identifier name, 
+    public Event(TypeNode declaringType, List<AttributeNode> attributes, EventFlags flags, Identifier name, 
       Method handlerAdder, Method handlerCaller, Method handlerRemover, TypeNode handlerType)
       : base(declaringType, attributes, name, NodeType.Event){
       this.Flags = flags;
@@ -15578,7 +15575,7 @@ namespace System.Compiler{
       get{return this.handlerType;}
       set{this.handlerType = value;}
     }
-    public MethodList OtherMethods{
+    public List<Method> OtherMethods{
       get{return this.otherMethods;}
       set{this.otherMethods = value;}
     }
@@ -15922,18 +15919,18 @@ namespace System.Compiler{
     /// must thus initialize it explicitly after the base ctor call and before 
     /// </summary>
     protected internal Block postPreamble;
-    protected internal RequiresList requires;
-    protected internal EnsuresList ensures;
-    protected internal EnsuresList modelEnsures;
+    protected internal List<Requires> requires;
+    protected internal List<Ensures> ensures;
+    protected internal List<Ensures> modelEnsures;
     /// <summary>
     /// Used to support legacy if-then-throw and validator calls as contracts. Only used by rewriter.
     /// The decompiled validations appear as Requires<![CDATA[<E>]]> on the requires list.
     /// This list contains RequiresOtherwise and ordinary Requires in the proper order.
     /// </summary>
-    protected internal RequiresList validations;
-    protected internal ExpressionList modifies;
+    protected internal List<Requires> validations;
+    protected internal List<Expression> modifies;
     protected internal bool? isPure;
-    protected internal EnsuresList asyncEnsures;
+    protected internal List<Ensures> asyncEnsures;
 
 #if ExtendedRuntime
     private static SourceContext SetContext(string/*!*/ filename, int startLine, int startCol, int endLine, int endCol, string/*!*/ sourceText) {
@@ -16085,15 +16082,15 @@ namespace System.Compiler{
         return mods.Count;
       }
     }
-    public RequiresList Requires{
+    public List<Requires> Requires{
       get{
 #if CodeContracts
         return this.requires;
 #else
         if (this.requires != null) return this.requires;
-        RequiresList rs = this.requires = new RequiresList();
+        List<Requires> rs = this.requires = new List<Requires>();
         if (this.DeclaringMethod != null){
-          AttributeList attributes = this.DeclaringMethod.Attributes;
+          List<AttributeNode> attributes = this.DeclaringMethod.Attributes;
           if (attributes == null || attributes.Count == 0) return rs;
           IContractDeserializer ds = Cci.ContractDeserializerContainer.ContractDeserializer;
           if (ds != null){
@@ -16116,7 +16113,7 @@ namespace System.Compiler{
                 try {
                   e = ds.ParseContract(this,s,null);
                 } catch {
-                  continue; //return this.requires = new RequiresList();
+                  continue; //return this.requires = new List<Requires>();
                 }
                 if (e != null){
                   RequiresPlain rp = new RequiresPlain(e);
@@ -16136,15 +16133,15 @@ namespace System.Compiler{
         this.requires = value;
       }
     }
-    public EnsuresList Ensures{
+    public List<Ensures> Ensures{
       get{
 #if CodeContracts
         return this.ensures;
 #else
         if (this.ensures != null) return this.ensures;
-        EnsuresList es = this.ensures = new EnsuresList();
+        List<Ensures> es = this.ensures = new List<Ensures>();
         if (this.DeclaringMethod != null){
-          AttributeList attributes = this.DeclaringMethod.Attributes;
+          List<AttributeNode> attributes = this.DeclaringMethod.Attributes;
           if (attributes == null || attributes.Count == 0) return es;
           IContractDeserializer ds = Cci.ContractDeserializerContainer.ContractDeserializer;
           if (ds != null){
@@ -16187,7 +16184,7 @@ namespace System.Compiler{
                         ee.PostCondition.SourceContext = eeSourceContext;
                       }
                       catch {
-                        continue; //return this.ensures = new EnsuresList();
+                        continue; //return this.ensures = new List<Ensures>();
                       }
                     }
                   }
@@ -16201,7 +16198,7 @@ namespace System.Compiler{
                 try {
                   e = ds.ParseContract(this,s,null);
                 } catch {
-                  continue; //return this.ensures = new EnsuresList();
+                  continue; //return this.ensures = new List<Ensures>();
                 }
                 EnsuresNormal ens = new EnsuresNormal(e);
                 SourceContext ctx = MethodContract.GetSourceContext(attr);
@@ -16221,13 +16218,13 @@ namespace System.Compiler{
     }
 
 
-    public EnsuresList AsyncEnsures
+    public List<Ensures> AsyncEnsures
     {
         get { return this.asyncEnsures; }
         set { this.asyncEnsures = value; }
     }
 
-    public EnsuresList ModelEnsures {
+    public List<Ensures> ModelEnsures {
       get { return this.modelEnsures; }
       set { this.modelEnsures = value; }
     }
@@ -16237,7 +16234,7 @@ namespace System.Compiler{
     /// as in the Requires list. This list is used in the rewriter to emit code that uses the original
     /// validation instructions rather than Requires(E)
     /// </summary>
-    public RequiresList Validations
+    public List<Requires> Validations
     {
       get { return this.validations; }
       set { this.validations = value; }
@@ -16249,7 +16246,7 @@ namespace System.Compiler{
         if (this.isPure.HasValue) return this.isPure.Value;
         if (this.DeclaringMethod != null)
         {
-          AttributeList attributes = this.DeclaringMethod.Attributes;
+          List<AttributeNode> attributes = this.DeclaringMethod.Attributes;
           for (int i = 0; attributes != null && i < attributes.Count; i++)
           {
             AttributeNode attr = attributes[i];
@@ -16272,15 +16269,15 @@ namespace System.Compiler{
         this.isPure = value;
       }
     }
-    public ExpressionList Modifies{
+    public List<Expression> Modifies{
       get{
 #if CodeContracts
         return null;
 #else
         if (this.modifies != null) return this.modifies;
-        ExpressionList ms = this.modifies = new ExpressionList();
+        List<Expression> ms = this.modifies = new List<Expression>();
         if (this.DeclaringMethod != null){
-          AttributeList attributes = this.DeclaringMethod.Attributes;
+          List<AttributeNode> attributes = this.DeclaringMethod.Attributes;
           if (attributes == null || attributes.Count == 0) return ms;
           IContractDeserializer ds = Cci.ContractDeserializerContainer.ContractDeserializer;
           if (ds != null){
@@ -16361,7 +16358,7 @@ namespace System.Compiler{
           #region Map the ParameterFields
           MethodScope targetScope = targetMethod.Scope;
           if (sourceScope != null && targetScope != null){
-            MemberList sourceScopeMembers = sourceScope.Members;
+            List<Member> sourceScopeMembers = sourceScope.Members;
             for (int i = 0, n = sourceScopeMembers != null ? sourceScopeMembers.Count : 0; i < n; i++){
               ParameterField sourcePF = sourceScopeMembers[i] as ParameterField;
               if (sourcePF == null) continue;
@@ -16385,7 +16382,7 @@ namespace System.Compiler{
       MethodContract duplicatedMC = dup.VisitMethodContract(sourceContract);
       duplicatedMC.isPure = sourceContract.IsPure; // force looking at attributes
       if (duplicatedMC != null && duplicatedMC.Requires != null && duplicatedMC.Requires.Count > 0) {
-        RequiresList reqList = new RequiresList();
+        List<Requires> reqList = new List<Requires>();
         for (int i = 0, n = duplicatedMC.Requires.Count; i< n; i++){
           Requires r = duplicatedMC.Requires[i];
           if (r != null) r.Inherited = true;
@@ -16401,7 +16398,7 @@ namespace System.Compiler{
         this.Requires = reqList;
       }
       if (duplicatedMC != null && duplicatedMC.Ensures != null && duplicatedMC.Ensures.Count > 0 ) {
-        EnsuresList enList = new EnsuresList();
+        List<Ensures> enList = new List<Ensures>();
         for(int i = 0, n = duplicatedMC.Ensures.Count; i < n; i++) {
           Ensures e = duplicatedMC.Ensures[i];
           if (e == null) continue;
@@ -16418,7 +16415,7 @@ namespace System.Compiler{
         this.Ensures = enList;
       }
       if (duplicatedMC != null && duplicatedMC.Modifies != null && duplicatedMC.Modifies.Count > 0) {
-        ExpressionList modlist = this.Modifies = (this.Modifies == null ? new ExpressionList() : this.Modifies);
+        List<Expression> modlist = this.Modifies = (this.Modifies == null ? new List<Expression>() : this.Modifies);
         for (int i = 0, n = duplicatedMC.Modifies.Count; i < n; i++)
           modlist.Add(duplicatedMC.Modifies[i]);
       }
@@ -16443,7 +16440,7 @@ namespace System.Compiler{
 #endif
 
 #if !CodeContracts
-    public Invariant(TypeNode declaringType, AttributeList attributes, Identifier name)
+    public Invariant(TypeNode declaringType, List<AttributeNode> attributes, Identifier name)
     {
       this.NodeType = NodeType.Invariant;
       this.attributes = attributes;
@@ -16477,7 +16474,7 @@ namespace System.Compiler{
 
     public Expression Witness = null;
     public bool HasExplicitWitness = false; //set to true if this modelfield has an explicitly specified witness. NOTE: Not serialized, i.e., not available in boogie!
-    public ExpressionList/*!*/ SatisfiesList = new ExpressionList();            
+    public List<Expression>/*!*/ SatisfiesList = new List<Expression>();            
 
     public TypeNode DeclaringType;
 
@@ -16511,7 +16508,7 @@ namespace System.Compiler{
     /// ensures that the SourceContext of the result and the default witness are set to name.SourceContext.
     /// requires all attributes to be non-null
     /// </summary>    
-    public ModelfieldContract(TypeNode declaringType, AttributeList attrs, TypeNode type, Identifier name, SourceContext sctx)
+    public ModelfieldContract(TypeNode declaringType, List<AttributeNode> attrs, TypeNode type, Identifier name, SourceContext sctx)
       : base(NodeType.ModelfieldContract)
     {
       this.DeclaringType = declaringType;            
@@ -16523,7 +16520,7 @@ namespace System.Compiler{
       } else if (declaringType is Interface) {
         //Treat as a property with a getter that will return a modelfield from an implementing class        
         #region create a default abstract getter method getM
-        Method getM = new Method(declaringType, new AttributeList(), new Identifier("get_" + name.Name), new ParameterList(), type, null);
+        Method getM = new Method(declaringType, new List<AttributeNode>(), new Identifier("get_" + name.Name), new List<Parameter>(), type, null);
         getM.SourceContext = this.SourceContext;
         getM.CallingConvention = CallingConventionFlags.HasThis; //needs to be changed when we want to allow static modelfields
         //Give getM [NoDefaultContract] so that it can easily be called in specs
@@ -16778,17 +16775,17 @@ namespace System.Compiler{
     }
 #endif
 
-    public InvariantList InheritedInvariants;
-    protected internal InvariantList invariants;
-    public InvariantList Invariants{
+    public List<Invariant> InheritedInvariants;
+    protected internal List<Invariant> invariants;
+    public List<Invariant> Invariants{
       get{
 #if CodeContracts
         return this.invariants;
 #else 
         if (this.invariants != null) return this.invariants;
-        InvariantList invs = this.invariants = new InvariantList();
+        List<Invariant> invs = this.invariants = new List<Invariant>();
         if (this.DeclaringType != null){
-          AttributeList attributes = this.DeclaringType.Attributes;
+          List<AttributeNode> attributes = this.DeclaringType.Attributes;
           IContractDeserializer ds = Cci.ContractDeserializerContainer.ContractDeserializer;
           if (ds != null){
             Module savedCurrentAssembly = ds.CurrentAssembly;
@@ -16860,7 +16857,7 @@ namespace System.Compiler{
       : base(NodeType.TypeContract) {
       this.DeclaringType = containingType;
       if (initInvariantList) {
-        this.invariants = new InvariantList();
+        this.invariants = new List<Invariant>();
       }
     }
     public int InvariantCount { get { return Invariants == null ? 0 : Invariants.Count; } }
@@ -17230,8 +17227,8 @@ namespace System.Compiler{
     }
 #endif
 #if !MinimalReader && !CodeContracts
-    public TypeNodeList ImplementedTypes;
-    public TypeNodeList ImplementedTypeExpressions;
+    public List<TypeNode> ImplementedTypes;
+    public List<TypeNode> ImplementedTypeExpressions;
     public bool HasCompilerGeneratedSignature = true;
     public TypeNode ReturnTypeExpression;
     /// <summary>Provides a way to retrieve the parameters and local variables defined in this method given their names.</summary>
@@ -17240,26 +17237,26 @@ namespace System.Compiler{
     protected TrivialHashtable/*!*/ Locals = null;
 #endif
 #if !FxCop
-    public LocalList LocalList;
-    protected SecurityAttributeList securityAttributes;
+    public List<Local> LocalList;
+    protected List<SecurityAttribute> securityAttributes;
     /// <summary>Contains declarative security information associated with the type.</summary>
-    public SecurityAttributeList SecurityAttributes {
+    public List<SecurityAttribute> SecurityAttributes {
       get {
         if (this.securityAttributes != null) return this.securityAttributes;
         if (this.attributes == null) {
-          AttributeList al = this.Attributes; //Getting the type attributes also gets the security attributes, in the case of a type that was read in by the Reader
+          List<AttributeNode> al = this.Attributes; //Getting the type attributes also gets the security attributes, in the case of a type that was read in by the Reader
           if (al != null) al = null;
           if (this.securityAttributes != null) return this.securityAttributes;
         }
-        return this.securityAttributes = new SecurityAttributeList(0);
+        return this.securityAttributes = new List<SecurityAttribute>(0);
       }
       set {
         this.securityAttributes = value;
       }
     }
 #else
-    internal SecurityAttributeList securityAttributes;
-    public SecurityAttributeList SecurityAttributes{
+    internal List<SecurityAttribute> securityAttributes;
+    public List<SecurityAttribute> SecurityAttributes{
       get{return this.securityAttributes;}
       internal set{this.securityAttributes = value;}
     }
@@ -17310,7 +17307,7 @@ namespace System.Compiler{
       this.ProvideBody = provider;
       this.ProviderHandle = handle;
     }
-    public Method(TypeNode declaringType, AttributeList attributes, Identifier name, ParameterList parameters, TypeNode returnType, Block body)
+    public Method(TypeNode declaringType, List<AttributeNode> attributes, Identifier name, List<Parameter> parameters, TypeNode returnType, Block body)
       : base(declaringType, attributes, name, NodeType.Method){
       this.body = body;
       this.Parameters = parameters; // important to use setter here.
@@ -17326,20 +17323,20 @@ namespace System.Compiler{
       get{return this.implFlags;}
       set{this.implFlags = value;}
     }
-    private MethodList implementedInterfaceMethods;
-    public MethodList ImplementedInterfaceMethods{
+    private List<Method> implementedInterfaceMethods;
+    public List<Method> ImplementedInterfaceMethods{
       get{return this.implementedInterfaceMethods;}
       set{this.implementedInterfaceMethods = value;}
     }
 #if !MinimalReader
-    private MethodList implicitlyImplementedInterfaceMethods;
+    private List<Method> implicitlyImplementedInterfaceMethods;
     /// <summary>
     /// Computes the implicitly implemented methods for any method, not necessarily being compiled.
     /// </summary>
-    public MethodList ImplicitlyImplementedInterfaceMethods{
+    public List<Method> ImplicitlyImplementedInterfaceMethods{
       get{
         if (this.implicitlyImplementedInterfaceMethods == null){
-          this.implicitlyImplementedInterfaceMethods = new MethodList();
+          this.implicitlyImplementedInterfaceMethods = new List<Method>();
           // Degenerate case: interface methods don't implicitly implement anything
           if (this.DeclaringType != null && this.DeclaringType.NodeType == Cci.NodeType.Interface) {
             return this.implicitlyImplementedInterfaceMethods;
@@ -17388,17 +17385,17 @@ namespace System.Compiler{
       }
     }
 
-    private MethodList shallowImplicitlyImplementedInterfaceMethods;
+    private List<Method> shallowImplicitlyImplementedInterfaceMethods;
     /// <summary>
     /// Computes the implicitly implemented methods (of interfaces of this type)
     /// </summary>
-    public MethodList ShallowImplicitlyImplementedInterfaceMethods
+    public List<Method> ShallowImplicitlyImplementedInterfaceMethods
     {
       get
       {
         if (this.shallowImplicitlyImplementedInterfaceMethods == null)
         {
-          this.shallowImplicitlyImplementedInterfaceMethods = new MethodList();
+          this.shallowImplicitlyImplementedInterfaceMethods = new List<Method>();
           // Degenerate case: interface methods don't implicitly implement anything
           if (this.DeclaringType != null && this.DeclaringType.NodeType == Cci.NodeType.Interface) {
             return this.shallowImplicitlyImplementedInterfaceMethods;
@@ -17443,9 +17440,9 @@ namespace System.Compiler{
       get{return this.isGeneric;}
       set{this.isGeneric = value;}
     }
-    private ParameterList parameters;
+    private List<Parameter> parameters;
     /// <summary>The parameters this method has to be called with.</summary>
-    public ParameterList Parameters{
+    public List<Parameter> Parameters{
       get{return this.parameters;}
       set{
         this.parameters = value;
@@ -17485,9 +17482,9 @@ namespace System.Compiler{
       get{return this.pInvokeImportName;}
       set{this.pInvokeImportName = value;}
     }
-    private AttributeList returnAttributes;
+    private List<AttributeNode> returnAttributes;
     /// <summary>Attributes that apply to the return value of this method.</summary>
-    public AttributeList ReturnAttributes{
+    public List<AttributeNode> ReturnAttributes{
       get{return this.returnAttributes;}
       set{this.returnAttributes = value;}
     }
@@ -17507,7 +17504,7 @@ namespace System.Compiler{
     public Member DeclaringMember{
       get{
         if (this.declaringMember == null && this.DeclaringType != null && !this.DeclaringType.membersBeingPopulated) {
-          MemberList dummyMembers = this.DeclaringType.Members; //evaluate for side effect of filling in declaringMember
+          List<Member> dummyMembers = this.DeclaringType.Members; //evaluate for side effect of filling in declaringMember
         }
         return this.declaringMember;
       }
@@ -17565,7 +17562,7 @@ namespace System.Compiler{
     /// The type of delegates that fill in the Attributes property of the given method.
     /// </summary>
     public delegate void MethodAttributeProvider(Method/*!*/ method, object/*!*/ handle);
-    public override AttributeList Attributes {
+    public override List<AttributeNode> Attributes {
       get{
         if (this.attributes == null){
           if (this.ProvideMethodAttributes != null && this.ProviderHandle != null){
@@ -17574,7 +17571,7 @@ namespace System.Compiler{
                 this.ProvideMethodAttributes(this, this.ProviderHandle);
             }
           }else
-            this.attributes = new AttributeList(0);
+            this.attributes = new List<AttributeNode>(0);
         }
         return this.attributes;
       }
@@ -17589,7 +17586,7 @@ namespace System.Compiler{
 #endif
       lock(Module.GlobalLock){
         this.Body = new Block(); // otherwise the code provider may repopulate it.
-        this.Instructions = new InstructionList();
+        this.Instructions = new List<Instruction>();
         this.ExceptionHandlers = null;
 #if !FxCop
         this.LocalList = null;
@@ -17623,9 +17620,9 @@ namespace System.Compiler{
         this.conditionalSymbol = value;
       }
     }
-    protected InstructionList instructions;
+    protected List<Instruction> instructions;
     /// <summary>The instructions constituting the body of this method, in the form of a linear list of Instruction nodes.</summary>
-    public virtual InstructionList Instructions{
+    public virtual List<Instruction> Instructions{
       get{
         if (this.instructions != null) return this.instructions;
         if (this.ProvideBody != null && this.ProviderHandle != null){
@@ -17650,12 +17647,12 @@ namespace System.Compiler{
       }
     }
 #if !FxCop
-    protected ExceptionHandlerList exceptionHandlers;
-    public virtual ExceptionHandlerList ExceptionHandlers{
+    protected List<ExceptionHandler> exceptionHandlers;
+    public virtual List<ExceptionHandler> ExceptionHandlers{
       get{
         if (this.exceptionHandlers != null) return this.exceptionHandlers;
         Block dummy = this.Body;
-        if (this.exceptionHandlers == null) this.exceptionHandlers = new ExceptionHandlerList(0);
+        if (this.exceptionHandlers == null) this.exceptionHandlers = new List<ExceptionHandler>(0);
         return this.exceptionHandlers;
       }
       set{
@@ -17679,7 +17676,7 @@ namespace System.Compiler{
           sb.Append(this.TemplateParameters.Count);            
         }
       }
-      ParameterList parameters = this.Parameters;
+      List<Parameter> parameters = this.Parameters;
       for (int i = 0, n = parameters == null ? 0 : parameters.Count; i < n; i++){
         Parameter par = parameters[i];
         if (par == null || par.Type == null) continue;
@@ -17711,7 +17708,7 @@ namespace System.Compiler{
             sb.Append("#ctor");
           else if (this.Name != null)
             sb.Append(this.Name.ToString());
-          ParameterList parameters = this.Parameters;
+          List<Parameter> parameters = this.Parameters;
           for (int i = 0, n = parameters == null ? 0 : parameters.Count; i < n; i++) {
             Parameter par = parameters[i];
             if (par == null || par.Type == null) continue;
@@ -17737,7 +17734,7 @@ namespace System.Compiler{
         bool startWithNewLine = (sb.Length != 0);
         if (this.Contract != null){
           MethodContract mc = this.Contract;
-          RequiresList rs = mc.Requires;
+          List<Requires> rs = mc.Requires;
           if (rs != null && rs.Count == 0) { mc.Requires = null; rs = mc.Requires; }
           for (int i = 0, n = rs == null ? 0 : rs.Count; i < n; i++){
             Requires r = rs[i];
@@ -17751,7 +17748,7 @@ namespace System.Compiler{
               startWithNewLine = true;
             }
           }
-          EnsuresList es = mc.Ensures;
+          List<Ensures> es = mc.Ensures;
           if (es != null && es.Count == 0) { mc.Ensures = null; es = mc.Ensures; }
           if (es != null) {
             for (int i = 0, n = es.Count; i < n; i++) {
@@ -17781,7 +17778,7 @@ namespace System.Compiler{
               startWithNewLine = true;
             }
           }
-          ExpressionList exps = mc.Modifies;
+          List<Expression> exps = mc.Modifies;
           // Force deserialization in case that is needed
           if (exps != null && exps.Count == 0) { mc.Modifies = null; exps = mc.Modifies; }
           if (exps != null) {
@@ -17825,7 +17822,7 @@ namespace System.Compiler{
           sb.Append(name);
       }
       if (omitParameterTypes) return sb.ToString();
-      ParameterList parameters = this.Parameters;
+      List<Parameter> parameters = this.Parameters;
       for (int i = 0, n = parameters == null ? 0 : parameters.Count; i < n; i++) {
         Parameter par = parameters[i];
         if (par == null || par.Type == null) continue;
@@ -17851,7 +17848,7 @@ namespace System.Compiler{
     public virtual string GetUnmangledNameWithTypeParameters(bool omitParameterTypes){
       StringBuilder sb = new StringBuilder();
       sb.Append(this.GetUnmangledNameWithoutTypeParameters(true));
-      TypeNodeList templateParameters = this.TemplateParameters;
+      List<TypeNode> templateParameters = this.TemplateParameters;
       for (int i = 0, n = templateParameters == null ? 0 : templateParameters.Count; i < n; i++){
         TypeNode tpar = templateParameters[i];
         if (tpar == null) continue;
@@ -17864,7 +17861,7 @@ namespace System.Compiler{
           sb.Append('>');
       }
       if (omitParameterTypes) return sb.ToString();
-      ParameterList parameters = this.Parameters;
+      List<Parameter> parameters = this.Parameters;
       for (int i = 0, n = parameters == null ? 0 : parameters.Count; i < n; i++){
         Parameter par = parameters[i];
         if (par == null || par.Type == null) continue;
@@ -18064,7 +18061,7 @@ namespace System.Compiler{
       get{
         AttributeNode attr = this.GetAttributeFromSelfOrDeclaringMember(SystemTypes.PureAttribute);
         if (attr == null) return false; // no [Pure] at all
-        ExpressionList exprs = attr.Expressions;
+        List<Expression> exprs = attr.Expressions;
         if (exprs != null && 0 < exprs.Count) {
           Literal lit = exprs[0] as Literal;
           if (lit != null && (lit.Value is bool)) {
@@ -18133,7 +18130,7 @@ namespace System.Compiler{
         if (attr == null)
           return false; // not pure at all, so how could it be confined?
         // Make sure it isn't [Pure(false)]
-        ExpressionList exprs = attr.Expressions;
+        List<Expression> exprs = attr.Expressions;
         if (exprs != null && 0 < exprs.Count) {
           Literal lit = exprs[0] as Literal;
           if (lit != null && (lit.Value is bool)) {
@@ -18174,7 +18171,7 @@ namespace System.Compiler{
         if (attr == null)
           return false; // not pure at all, so how could it be confined?
         // Make sure it isn't [Pure(false)]
-        ExpressionList exprs = attr.Expressions;
+        List<Expression> exprs = attr.Expressions;
         if (exprs != null && 0 < exprs.Count) {
           Literal lit = exprs[0] as Literal;
           if (lit != null && (lit.Value is bool)) {
@@ -18225,7 +18222,7 @@ namespace System.Compiler{
         if (this.IsVirtual && (this.Flags & MethodFlags.VtableLayoutMask) != MethodFlags.NewSlot) return null;
         TypeNode baseType = this.DeclaringType.BaseType;
         while (baseType != null){
-          MemberList baseMembers = baseType.GetMembersNamed(this.Name);
+          List<Member> baseMembers = baseType.GetMembersNamed(this.Name);
           if (baseMembers != null)
             for (int i = 0, n = baseMembers.Count; i < n; i++){
               Method bmeth = baseMembers[i] as Method;
@@ -18271,7 +18268,7 @@ namespace System.Compiler{
         if (!this.IsVirtual) return null;
         TypeNode baseType = this.DeclaringType.BaseType;
         while (baseType != null){
-          MemberList baseMembers = baseType.GetMembersNamed(this.Name);
+          List<Member> baseMembers = baseType.GetMembersNamed(this.Name);
           if (baseMembers != null)
             for (int i = 0, n = baseMembers.Count; i < n; i++){
               Method bmeth = baseMembers[i] as Method;
@@ -18307,7 +18304,7 @@ namespace System.Compiler{
         try{
           Method template = Method.GetMethod(methodInfo.GetGenericMethodDefinition());
           if (template == null) return null;
-          TypeNodeList templateArguments = new TypeNodeList();
+          List<TypeNode> templateArguments = new List<TypeNode>();
           foreach (Type arg in methodInfo.GetGenericArguments())
             templateArguments.Add(TypeNode.GetTypeNode(arg));
           return template.GetTemplateInstance(template.DeclaringType, templateArguments);
@@ -18327,9 +18324,9 @@ namespace System.Compiler{
         if (param == null) return null;
         parameterTypes[i] = TypeNode.GetTypeNode(param.ParameterType);
       }
-      TypeNodeList paramTypes = new TypeNodeList(parameterTypes);
+      List<TypeNode> paramTypes = new List<TypeNode>(parameterTypes);
       TypeNode returnType = TypeNode.GetTypeNode(methodInfo.ReturnType);
-      MemberList members = tn.GetMembersNamed(Identifier.For(methodInfo.Name));
+      List<Member> members = tn.GetMembersNamed(Identifier.For(methodInfo.Name));
       for (int i = 0, m = members == null ? 0 : members.Count; i < m; i++){
         Method meth = members[i] as Method;
         if (meth == null) continue;
@@ -18394,7 +18391,7 @@ namespace System.Compiler{
           try{
             System.Reflection.MethodInfo templateInfo = this.Template.GetMethodInfo();
             if (templateInfo == null) return null;
-            TypeNodeList args = this.TemplateArguments;
+            List<TypeNode> args = this.TemplateArguments;
             Type[] arguments = new Type[args.Count];
             for (int i = 0; i < args.Count; i++) arguments[i] = args[i].GetRuntimeType();
             return templateInfo.MakeGenericMethod(arguments);
@@ -18412,7 +18409,7 @@ namespace System.Compiler{
           retType = this.ReturnType.GetRuntimeType();
           if (retType == null) return null;
         }
-        ParameterList pars = this.Parameters;
+        List<Parameter> pars = this.Parameters;
         int n = pars == null ? 0 : pars.Count;
         Type[] types = new Type[n];
         for (int i = 0; i < n; i++){
@@ -18434,7 +18431,7 @@ namespace System.Compiler{
           if (meth.ReturnType != retType) continue;
 #if WHIDBEY
           if (meth.IsGenericMethodDefinition) {
-            TypeNodeList templateParams = this.TemplateParameters;
+            List<TypeNode> templateParams = this.TemplateParameters;
             Type[] genericArgs = meth.GetGenericArguments();
             if (templateParams == null || genericArgs == null || templateParameters.Count != genericArgs.Length) goto tryNext;
             for (int i = 0, m = genericArgs.Length; i < m; i++) {
@@ -18470,7 +18467,7 @@ namespace System.Compiler{
     protected TypeNode[] parameterTypes;
     public virtual TypeNode[]/*!*/ GetParameterTypes() {
       if (this.parameterTypes != null) return this.parameterTypes;
-      ParameterList pars = this.Parameters;
+      List<Parameter> pars = this.Parameters;
       int n = pars == null ? 0 : pars.Count;
       TypeNode[] types = this.parameterTypes = new TypeNode[n];
       for (int i = 0; i < n; i++){
@@ -18481,8 +18478,8 @@ namespace System.Compiler{
       return types;
     }
 #endif
-    public virtual bool ParametersMatch(ParameterList parameters){
-      ParameterList pars = this.Parameters;
+    public virtual bool ParametersMatch(List<Parameter> parameters){
+      List<Parameter> pars = this.Parameters;
       int n = pars == null ? 0 : pars.Count;
       int m = parameters == null ? 0 : parameters.Count;
       if (n != m) return false;
@@ -18496,8 +18493,8 @@ namespace System.Compiler{
       return true;
     }
 #if !MinimalReader
-    public virtual bool ParametersMatchExceptLast(ParameterList parameters){
-      ParameterList pars = this.Parameters;
+    public virtual bool ParametersMatchExceptLast(List<Parameter> parameters){
+      List<Parameter> pars = this.Parameters;
       int n = pars == null ? 0 : pars.Count;
       int m = parameters == null ? 0 : parameters.Count;
       if (n != m) return false;
@@ -18511,8 +18508,8 @@ namespace System.Compiler{
       return true;
     }
 #endif
-    public virtual bool ParametersMatchStructurally(ParameterList parameters){
-      ParameterList pars = this.Parameters;
+    public virtual bool ParametersMatchStructurally(List<Parameter> parameters){
+      List<Parameter> pars = this.Parameters;
       int n = pars == null ? 0 : pars.Count;
       int m = parameters == null ? 0 : parameters.Count;
       if (n != m) return false;
@@ -18527,11 +18524,11 @@ namespace System.Compiler{
       return true;
     }
 #if !MinimalReader
-    public virtual bool ParametersMatchStructurallyIncludingOutFlag(ParameterList parameters){
+    public virtual bool ParametersMatchStructurallyIncludingOutFlag(List<Parameter> parameters){
       return this.ParametersMatchStructurallyIncludingOutFlag(parameters, false);
     }
-    public virtual bool ParametersMatchStructurallyIncludingOutFlag(ParameterList parameters, bool allowCoVariance){
-      ParameterList pars = this.Parameters;
+    public virtual bool ParametersMatchStructurallyIncludingOutFlag(List<Parameter> parameters, bool allowCoVariance){
+      List<Parameter> pars = this.Parameters;
       int n = pars == null ? 0 : pars.Count;
       int m = parameters == null ? 0 : parameters.Count;
       if (n != m) return false;
@@ -18549,8 +18546,8 @@ namespace System.Compiler{
       }
       return true;
     }
-    public virtual bool ParametersMatchStructurallyExceptLast(ParameterList parameters){
-      ParameterList pars = this.Parameters;
+    public virtual bool ParametersMatchStructurallyExceptLast(List<Parameter> parameters){
+      List<Parameter> pars = this.Parameters;
       int n = pars == null ? 0 : pars.Count;
       int m = parameters == null ? 0 : parameters.Count;
       if (n != m) return false;
@@ -18564,8 +18561,8 @@ namespace System.Compiler{
       }
       return true;
     }
-    public virtual bool ParametersMatchIncludingOutFlag(ParameterList parameters){
-      ParameterList pars = this.Parameters;
+    public virtual bool ParametersMatchIncludingOutFlag(List<Parameter> parameters){
+      List<Parameter> pars = this.Parameters;
       int n = pars == null ? 0 : pars.Count;
       int m = parameters == null ? 0 : parameters.Count;
       if (n != m) return false;
@@ -18579,7 +18576,7 @@ namespace System.Compiler{
       return true;
     }
 #endif
-    public virtual bool ParameterTypesMatch(TypeNodeList argumentTypes){
+    public virtual bool ParameterTypesMatch(List<TypeNode> argumentTypes){
       int n = this.Parameters == null ? 0 : this.Parameters.Count;
       int m = argumentTypes == null ? 0 : argumentTypes.Count;
       if (n != m) return false;
@@ -18596,7 +18593,7 @@ namespace System.Compiler{
       }
       return true;
     }
-    public virtual bool ParameterTypesMatchStructurally(TypeNodeList argumentTypes){
+    public virtual bool ParameterTypesMatchStructurally(List<TypeNode> argumentTypes){
       int n = this.Parameters == null ? 0 : this.Parameters.Count;
       int m = argumentTypes == null ? 0 : argumentTypes.Count;
       if (n != m) return false;
@@ -18612,8 +18609,8 @@ namespace System.Compiler{
       }
       return true;
     }
-    public virtual bool TemplateParametersMatch(TypeNodeList templateParameters){
-      TypeNodeList locPars = this.TemplateParameters;
+    public virtual bool TemplateParametersMatch(List<TypeNode> templateParameters){
+      List<TypeNode> locPars = this.TemplateParameters;
       if (locPars == null) return templateParameters == null || templateParameters.Count == 0;
       if (templateParameters == null) return false;
       int n = locPars.Count;
@@ -18693,7 +18690,7 @@ namespace System.Compiler{
         Method result = this.template;
 #if ExtendedRuntime
         if (result == null){
-          AttributeList attributes = this.Attributes;
+          List<AttributeNode> attributes = this.Attributes;
           lock(this){
             if (this.template != null) return this.template;
             for (int i = 0, n = attributes == null ? 0 : attributes.Count; i < n; i++){
@@ -18701,7 +18698,7 @@ namespace System.Compiler{
               if (attr == null) continue;
               MemberBinding mb = attr.Constructor as MemberBinding;
               if (mb == null || mb.BoundMember == null || mb.BoundMember.DeclaringType != SystemTypes.TemplateInstanceAttribute) continue;
-              ExpressionList exprs = attr.Expressions;
+              List<Expression> exprs = attr.Expressions;
               if (exprs == null || exprs.Count != 2) continue;
               Literal lit = exprs[0] as Literal;
               if (lit == null) continue;
@@ -18712,7 +18709,7 @@ namespace System.Compiler{
                 object[] types = lit.Value as object[];
                 if (types == null) continue;
                 int m = types == null ? 0 : types.Length;
-                TypeNodeList templateArguments = new TypeNodeList(m);
+                List<TypeNode> templateArguments = new List<TypeNode>(m);
                 for (int j = 0; j < m; j++){
                   //^ assert types != null;
                   TypeNode t = types[j] as TypeNode;
@@ -18720,7 +18717,7 @@ namespace System.Compiler{
                   templateArguments.Add(t);
                 }
                 this.TemplateArguments = templateArguments;
-                MemberList members = templ.GetMembersNamed(this.Name);
+                List<Member> members = templ.GetMembersNamed(this.Name);
                 if (members != null)
                   for (int j = 0, k = members.Count; j < k; j++){
                     Method meth = members[j] as Method;
@@ -18744,38 +18741,38 @@ namespace System.Compiler{
         this.template = value;
       }
     }
-    private TypeNodeList templateArguments;
+    private List<TypeNode> templateArguments;
     /// <summary>
     /// The arguments used when this (generic) method template instance was instantiated.
     /// </summary>
-    public TypeNodeList TemplateArguments{
+    public List<TypeNode> TemplateArguments{
       get{return this.templateArguments;}
       set{this.templateArguments = value;}
     }
-    internal TypeNodeList templateParameters;
+    internal List<TypeNode> templateParameters;
 #if CodeContracts
     public ExtraPDBInfo ExtraDebugInfo;
     public bool IsAsync;
     public int? MoveNextStartState;
 #endif
-    public virtual TypeNodeList TemplateParameters{
+    public virtual List<TypeNode> TemplateParameters{
       get{
 #if CodeContracts
-        CC.Contract.Ensures(CC.Contract.Result<TypeNodeList>() == null
-          || CC.Contract.ForAll(0, CC.Contract.Result<TypeNodeList>().Count, i => ((ITypeParameter)CC.Contract.Result<TypeNodeList>()[i]).ParameterListIndex == i));
+        CC.Contract.Ensures(CC.Contract.Result<List<TypeNode>>() == null
+          || CC.Contract.ForAll(0, CC.Contract.Result<List<TypeNode>>().Count, i => ((ITypeParameter)CC.Contract.Result<List<TypeNode>>()[i]).ParameterListIndex == i));
 #endif
 
-        TypeNodeList result = this.templateParameters;
+        List<TypeNode> result = this.templateParameters;
 #if ExtendedRuntime
         if (result == null && this.Template == null){
-          this.TemplateParameters = result = new TypeNodeList();
-          AttributeList attributes = this.Attributes;
+          this.TemplateParameters = result = new List<TypeNode>();
+          List<AttributeNode> attributes = this.Attributes;
           for (int i = 0, n = attributes == null ? 0 : attributes.Count; i < n; i++){
             AttributeNode attr = attributes[i];
             if (attr == null) continue;
             MemberBinding mb = attr.Constructor as MemberBinding;
             if (mb == null || mb.BoundMember == null || mb.BoundMember.DeclaringType != SystemTypes.TemplateAttribute) continue;
-            ExpressionList exprs = attr.Expressions;
+            List<Expression> exprs = attr.Expressions;
             if (exprs == null || exprs.Count != 1) continue;
             Literal lit = exprs[0] as Literal;
             if (lit == null) continue;
@@ -18803,9 +18800,9 @@ namespace System.Compiler{
       }
     }
     public virtual Method/*!*/ GetTemplateInstance(TypeNode referringType, params TypeNode[] typeArguments) {
-      return this.GetTemplateInstance(referringType, new TypeNodeList(typeArguments));
+      return this.GetTemplateInstance(referringType, new List<TypeNode>(typeArguments));
     }
-    public virtual Method/*!*/ GetTemplateInstance(TypeNode referringType, TypeNodeList typeArguments) {
+    public virtual Method/*!*/ GetTemplateInstance(TypeNode referringType, List<TypeNode> typeArguments) {
       if (!this.IsGeneric && (referringType == null || this.DeclaringType == null)){Debug.Assert(false); return this;}
       if (this.IsGeneric) referringType = this.DeclaringType;
       if (referringType != this.DeclaringType && referringType.DeclaringModule == this.DeclaringType.DeclaringModule)
@@ -18842,14 +18839,14 @@ namespace System.Compiler{
         result.fullName = null;
         result.template = this;
         result.TemplateArguments = typeArguments;
-        TypeNodeList templateParameters = result.TemplateParameters;
+        List<TypeNode> templateParameters = result.TemplateParameters;
         result.TemplateParameters = null;
 #if !MinimalReader
         result.IsNormalized = true;
 #endif
         if (!this.IsGeneric){
-          ParameterList pars = this.Parameters;
-          ParameterList rpars = result.Parameters;
+          List<Parameter> pars = this.Parameters;
+          List<Parameter> rpars = result.Parameters;
           if (pars != null && rpars != null && rpars.Count >= pars.Count)
             for (int i = 0, count = pars.Count; i < count; i++){
               Parameter p = pars[i];
@@ -18863,8 +18860,8 @@ namespace System.Compiler{
           result.Flags |= MethodFlags.Static;
           result.CallingConvention &= ~CallingConventionFlags.HasThis;
           result.CallingConvention |= CallingConventionFlags.ExplicitThis;
-          ParameterList pars = result.Parameters;
-          if (pars == null) result.Parameters = pars = new ParameterList(1);
+          List<Parameter> pars = result.Parameters;
+          if (pars == null) result.Parameters = pars = new List<Parameter>(1);
           Parameter thisPar = new Parameter(StandardIds.This, this.DeclaringType);
           pars.Add(thisPar);
           for (int i = pars.Count-1; i > 0; i--)
@@ -18881,7 +18878,7 @@ namespace System.Compiler{
         return result;
       }
     }
-    private static bool TypeListsAreEquivalent(TypeNodeList list1, TypeNodeList list2){
+    private static bool TypeListsAreEquivalent(List<TypeNode> list1, List<TypeNode> list2){
       if (list1 == null || list2 == null) return list1 == list2;
       int n = list1.Count;
       if (n != list2.Count) return false;
@@ -18907,12 +18904,12 @@ namespace System.Compiler{
     }
 #endif
     //TODO: Also need to add a method for allocating locals
-    public Method CreateExplicitImplementation(TypeNode implementingType, ParameterList parameters, StatementList body){
+    public Method CreateExplicitImplementation(TypeNode implementingType, List<Parameter> parameters, List<Statement> body){
       Method m = new Method(implementingType, null, this.Name, parameters, this.ReturnType, new Block(body));
       m.CallingConvention = CallingConventionFlags.HasThis;
       m.Flags = MethodFlags.Public | MethodFlags.HideBySig | MethodFlags.Virtual | MethodFlags.NewSlot | MethodFlags.Final;
-      m.ImplementedInterfaceMethods = new MethodList(this);
-      //m.ImplementedTypes = new TypeNodeList(this.DeclaringType);
+      m.ImplementedInterfaceMethods = new List<Method> { this };
+      //m.ImplementedTypes = new List<TypeNode>(this.DeclaringType);
       return m;
     }
 
@@ -18946,7 +18943,7 @@ namespace System.Compiler{
         return;
 
         name.Append('<');
-        TypeNodeList templateParameters = this.TemplateParameters;
+        List<TypeNode> templateParameters = this.TemplateParameters;
         for (int i = 0; i < templateParameters.Count; i++)
         {
           TypeNode templateParameter = templateParameters[i];
@@ -19009,7 +19006,7 @@ namespace System.Compiler{
 #if !MinimalReader
   public class ProxyMethod : Method{
     public Method ProxyFor;
-    public ProxyMethod(TypeNode declaringType, AttributeList attributes, Identifier name, ParameterList parameters, TypeNode returnType, Block body)
+    public ProxyMethod(TypeNode declaringType, List<AttributeNode> attributes, Identifier name, List<Parameter> parameters, TypeNode returnType, Block body)
       : base(declaringType, attributes, name, parameters, returnType, body) { }
   }
 #endif
@@ -19049,10 +19046,10 @@ namespace System.Compiler{
     }
 #endif
 #if !MinimalReader
-    public InstanceInitializer(TypeNode declaringType, AttributeList attributes, ParameterList parameters, Block body) 
+    public InstanceInitializer(TypeNode declaringType, List<AttributeNode> attributes, List<Parameter> parameters, Block body) 
       : this(declaringType, attributes, parameters, body, CoreSystemTypes.Void){
     }
-    public InstanceInitializer(TypeNode declaringType, AttributeList attributes, ParameterList parameters, Block body, TypeNode returnType)
+    public InstanceInitializer(TypeNode declaringType, List<AttributeNode> attributes, List<Parameter> parameters, Block body, TypeNode returnType)
       : base(declaringType, attributes, StandardIds.Ctor, parameters, null, body){
       this.NodeType = NodeType.InstanceInitializer;
       this.CallingConvention = CallingConventionFlags.HasThis;
@@ -19068,7 +19065,7 @@ namespace System.Compiler{
         if (this.DeclaringType == null) return null;
         Type t = this.DeclaringType.GetRuntimeType();
         if (t == null) return null; 
-        ParameterList pars = this.Parameters;
+        List<Parameter> pars = this.Parameters;
         int n = pars == null ? 0 : pars.Count;
         Type[] types = new Type[n];
         for (int i = 0; i < n; i++){
@@ -19133,13 +19130,13 @@ namespace System.Compiler{
       return this.DeclaringType.GetFullUnmangledNameWithTypeParameters() + "(" + this.Parameters + ")";
     }
 #if !MinimalReader
-    public virtual MemberList GetAttributeConstructorNamedParameters() {
+    public virtual List<Member> GetAttributeConstructorNamedParameters() {
       TypeNode type = this.DeclaringType;
       if (type == null || !type.IsAssignableTo(SystemTypes.Attribute) || type.Members == null)
         return null;
-      MemberList memList = type.Members;
+      List<Member> memList = type.Members;
       int n = memList.Count;
-      MemberList ml = new MemberList(memList.Count);
+      List<Member> ml = new List<Member>(memList.Count);
       for (int i = 0; i < n; ++i) {
         Property p = memList[i] as Property;
         if (p != null && p.IsPublic) {
@@ -19192,14 +19189,14 @@ namespace System.Compiler{
       this.NodeType = NodeType.StaticInitializer;
     }
 #if !MinimalReader
-    public StaticInitializer(TypeNode declaringType, AttributeList attributes, Block body)
+    public StaticInitializer(TypeNode declaringType, List<AttributeNode> attributes, Block body)
       : base(declaringType, attributes, StandardIds.CCtor,  null, null, body){
       this.NodeType = NodeType.StaticInitializer;
       this.Flags = MethodFlags.SpecialName|MethodFlags.RTSpecialName|MethodFlags.Static|MethodFlags.HideBySig|MethodFlags.Private;
       this.Name = StandardIds.CCtor;
       this.ReturnType = CoreSystemTypes.Void;
     }
-    public StaticInitializer(TypeNode declaringType, AttributeList attributes, Block body, TypeNode voidTypeExpression)
+    public StaticInitializer(TypeNode declaringType, List<AttributeNode> attributes, Block body, TypeNode voidTypeExpression)
       : base(declaringType, attributes, StandardIds.CCtor, null, null, body) {
       this.NodeType = NodeType.StaticInitializer;
       this.Flags = MethodFlags.SpecialName|MethodFlags.RTSpecialName|MethodFlags.Static|MethodFlags.HideBySig|MethodFlags.Private;
@@ -19214,7 +19211,7 @@ namespace System.Compiler{
         if (this.DeclaringType == null) return null;
         Type t = this.DeclaringType.GetRuntimeType();
         if (t == null) return null; 
-        ParameterList pars = this.Parameters;
+        List<Parameter> pars = this.Parameters;
         int n = pars == null ? 0 : pars.Count;
         Type[] types = new Type[n];
         for (int i = 0; i < n; i++){
@@ -19286,7 +19283,7 @@ namespace System.Compiler{
     protected Parameter parameter;
     public ParameterField(){
     }
-    public ParameterField(TypeNode declaringType, AttributeList attributes, FieldFlags flags, Identifier name, 
+    public ParameterField(TypeNode declaringType, List<AttributeNode> attributes, FieldFlags flags, Identifier name, 
       TypeNode Type, Literal defaultValue) 
       : base(declaringType, attributes, flags, name, Type, defaultValue){
     }
@@ -19313,8 +19310,8 @@ namespace System.Compiler{
     public Expression Initializer;
     public TypeNode TypeExpression;
     public bool HasOutOfBandContract;
-    public InterfaceList ImplementedInterfaces;
-    public InterfaceList ImplementedInterfaceExpressions;
+    public List<Interface> ImplementedInterfaces;
+    public List<Interface> ImplementedInterfaceExpressions;
     // if this is the backing field for some event, then ForEvent is that event
     public Event ForEvent;
     public bool IsModelfield = false; //set to true if this field serves as the representation of a modelfield in a class
@@ -19326,7 +19323,7 @@ namespace System.Compiler{
       : base(NodeType.Field){
       this.Name = name;
     }
-    public Field(TypeNode declaringType, AttributeList attributes, FieldFlags flags, Identifier name, 
+    public Field(TypeNode declaringType, List<AttributeNode> attributes, FieldFlags flags, Identifier name, 
       TypeNode type, Literal defaultValue)
       : base(declaringType, attributes, name, NodeType.Field){
       this.defaultValue = defaultValue;
@@ -19496,7 +19493,7 @@ namespace System.Compiler{
           TypeNode t = this.Type;
           if (t == null) return this.referenceSemantics;
           if (t is Struct){
-            TypeNodeList args;
+            List<TypeNode> args;
             bool b = t.IsAssignableToInstanceOf(SystemTypes.GenericIEnumerable, out args);
             if ( b && args!= null && args.Count > 0 && args[0] != null && args[0].IsObjectReferenceType)
               referenceKind = ReferenceFieldSemantics.EnumerableStructOfReferences;
@@ -19602,8 +19599,8 @@ namespace System.Compiler{
     /// <summary>
     /// The list of types (just one in C#) that contain abstract or virtual properties that are explicity implemented or overridden by this property.
     /// </summary>
-    public TypeNodeList ImplementedTypes;
-    public TypeNodeList ImplementedTypeExpressions;
+    public List<TypeNode> ImplementedTypes;
+    public List<TypeNode> ImplementedTypeExpressions;
     public bool IsModelfield = false;   //set to true if this property serves as the representation of a modelfield in an interface
 #endif
 #if FxCop
@@ -19614,7 +19611,7 @@ namespace System.Compiler{
       : base(NodeType.Property){
     }
 #if !MinimalReader
-    public Property(TypeNode declaringType, AttributeList attributes, PropertyFlags flags, Identifier name, 
+    public Property(TypeNode declaringType, List<AttributeNode> attributes, PropertyFlags flags, Identifier name, 
       Method getter, Method setter)
       : base(declaringType, attributes, name, NodeType.Property){
       this.flags = flags;
@@ -19641,9 +19638,9 @@ namespace System.Compiler{
       get{return this.setter;}
       set{this.setter = value;}
     }
-    private MethodList otherMethods;
+    private List<Method> otherMethods;
     /// <summary>Other methods associated with the property. No equivalent in C#.</summary>
-    public MethodList OtherMethods{
+    public List<Method> OtherMethods{
       get{return this.otherMethods;}
       set{this.otherMethods = value;}
     }
@@ -19656,7 +19653,7 @@ namespace System.Compiler{
         sb.Append('.');
         if (this.Name != null)
           sb.Append(this.Name.ToString());
-        ParameterList parameters = this.Parameters;
+        List<Parameter> parameters = this.Parameters;
         for (int i = 0, n = parameters == null ? 0 : parameters.Count; i < n; i++){
           Parameter par = parameters[i];
           if (par == null || par.Type == null) continue;
@@ -19678,7 +19675,7 @@ namespace System.Compiler{
       if (t == null) return null;
       while (t.BaseType != null){
         t = t.BaseType;
-        MemberList mems = t.GetMembersNamed(this.Name);
+        List<Member> mems = t.GetMembersNamed(this.Name);
         for (int i = 0, n = mems == null ? 0 : mems.Count; i < n; i++) {
           Property bprop = mems[i] as Property;
           if (bprop == null) continue;
@@ -19694,7 +19691,7 @@ namespace System.Compiler{
       if (t == null) return null;
       while (t.BaseType != null) {
         t = t.BaseType;
-        MemberList mems = t.GetMembersNamed(this.Name);
+        List<Member> mems = t.GetMembersNamed(this.Name);
         for (int i = 0, n = mems == null ? 0 : mems.Count; i < n; i++) {
           Property bprop = mems[i] as Property;
           if (bprop == null) continue;
@@ -19712,7 +19709,7 @@ namespace System.Compiler{
       sb.Append('.');
       if (this.Name != null)
         sb.Append(this.Name.ToString());
-      ParameterList parameters = this.Parameters;
+      List<Parameter> parameters = this.Parameters;
       for (int i = 0, n = parameters == null ? 0 : parameters.Count; i < n; i++){
         Parameter par = parameters[i];
         if (par == null || par.Type == null) continue;
@@ -19755,7 +19752,7 @@ namespace System.Compiler{
         if (this.Type == null) return null;
         Type retType = this.Type.GetRuntimeType();
         if (retType == null) return null;
-        ParameterList pars = this.Parameters;
+        List<Parameter> pars = this.Parameters;
         int n = pars == null ? 0 : pars.Count;
         Type[] types = new Type[n];
         for (int i = 0; i < n; i++){
@@ -19953,17 +19950,17 @@ namespace System.Compiler{
         this.overriddenMember = value;
       }
     }
-    private ParameterList parameters;
+    private List<Parameter> parameters;
     /// <summary>
     /// The parameters of this property if it is an indexer.
     /// </summary>
-    public ParameterList Parameters{
+    public List<Parameter> Parameters{
       get{
         if (this.parameters != null) return this.parameters;
         if (this.Getter != null) return this.parameters = this.Getter.Parameters;
-        ParameterList setterPars = this.Setter == null ? null : this.Setter.Parameters;
+        List<Parameter> setterPars = this.Setter == null ? null : this.Setter.Parameters;
         int n = setterPars == null ? 0 : setterPars.Count - 1;
-        ParameterList propPars = this.parameters = new ParameterList(n);
+        List<Parameter> propPars = this.parameters = new List<Parameter>(n);
         if (setterPars != null)
         for (int i = 0; i < n; i++) propPars.Add(setterPars[i]);
         return propPars;
@@ -19972,8 +19969,8 @@ namespace System.Compiler{
         this.parameters = value;
       }
     }
-    public virtual bool ParametersMatch(ParameterList parameters){
-      ParameterList pars = this.Parameters;
+    public virtual bool ParametersMatch(List<Parameter> parameters){
+      List<Parameter> pars = this.Parameters;
       int n = pars == null ? 0 : pars.Count;
       int m = parameters == null ? 0 : parameters.Count;
       if (n != m) return false;
@@ -19985,8 +19982,8 @@ namespace System.Compiler{
       }
       return true;
     }
-    public virtual bool ParametersMatchStructurally(ParameterList parameters) {
-      ParameterList pars = this.Parameters;
+    public virtual bool ParametersMatchStructurally(List<Parameter> parameters) {
+      List<Parameter> pars = this.Parameters;
       int n = pars == null ? 0 : pars.Count;
       int m = parameters == null ? 0 : parameters.Count;
       if (n != m) return false;
@@ -20000,8 +19997,8 @@ namespace System.Compiler{
       }
       return true;
     }
-    public virtual bool ParameterTypesMatch(TypeNodeList argumentTypes) {
-      ParameterList pars = this.Parameters;
+    public virtual bool ParameterTypesMatch(List<TypeNode> argumentTypes) {
+      List<Parameter> pars = this.Parameters;
       int n = pars == null ? 0 : pars.Count;
       int m = argumentTypes == null ? 0 : argumentTypes.Count;
       if (n != m) return false;
@@ -20063,9 +20060,9 @@ namespace System.Compiler{
     }
   }
   public class Parameter : Variable{
-    private AttributeList attributes;
+    private List<AttributeNode> attributes;
     /// <summary>The (C# custom) attributes of this parameter.</summary>
-    public AttributeList Attributes{
+    public List<AttributeNode> Attributes{
       get{
         return this.attributes;
       }
@@ -20118,7 +20115,7 @@ namespace System.Compiler{
       this.Type = type;
     }
 #if !MinimalReader
-    public Parameter(AttributeList attributes, ParameterFlags flags, Identifier name, TypeNode type, 
+    public Parameter(List<AttributeNode> attributes, ParameterFlags flags, Identifier name, TypeNode type, 
       Literal defaultValue, MarshallingInformation marshallingInformation)
       : base(NodeType.Parameter){
       this.attributes = attributes;
@@ -20197,7 +20194,7 @@ namespace System.Compiler{
     public virtual AttributeNode GetParamArrayAttribute(){
       AttributeNode result = this.paramArrayAttribute;
       if (result == null){
-        AttributeList attributes = this.Attributes;
+        List<AttributeNode> attributes = this.Attributes;
         for (int i = 0, n = attributes == null ? 0 : attributes.Count; i < n; i++){
           AttributeNode attr = attributes[i];
           if (attr == null) continue;
@@ -20232,7 +20229,7 @@ namespace System.Compiler{
     /// </summary>
     public virtual AttributeNode GetAttribute(TypeNode attributeType) {
       if (attributeType == null) return null;
-      AttributeList attributes = this.Attributes;
+      List<AttributeNode> attributes = this.Attributes;
       for (int i = 0, n = attributes == null ? 0 : attributes.Count; i < n; i++) {
         AttributeNode attr = attributes[i];
         if (attr == null) continue;
@@ -20410,7 +20407,7 @@ namespace System.Compiler{
     /// <summary>
     /// The list of namespaces that are fully contained inside this namespace.
     /// </summary>
-    public NamespaceList NestedNamespaces;
+    public List<Namespace> NestedNamespaces;
     /// <summary>
     /// The Universal Resource Identifier that should be associated with all declarations inside this namespace.
     /// Typically used when the types inside the namespace are serialized as an XML Schema Definition. (XSD)
@@ -20436,7 +20433,7 @@ namespace System.Compiler{
     public delegate void TypeProvider(Namespace @namespace, object handle);
 
     protected string fullName;
-    protected TypeNodeList types;
+    protected List<TypeNode> types;
 
     public Namespace()
       : base(NodeType.Namespace){
@@ -20459,7 +20456,7 @@ namespace System.Compiler{
       this.ProviderHandle = providerHandle;
     }
     public Namespace(Identifier name, Identifier fullName, AliasDefinitionList aliasDefinitions,  UsedNamespaceList usedNamespaces, 
-      NamespaceList nestedNamespaces, TypeNodeList types)
+      List<Namespace> nestedNamespaces, List<TypeNode> types)
       : base(NodeType.Namespace){
       this.Name = name;
       this.FullNameId = fullName;
@@ -20489,7 +20486,7 @@ namespace System.Compiler{
     /// The list of types contained inside this namespace. If the value of Types is null and the value of ProvideTypes is not null, the 
     /// TypeProvider delegate is called to fill in the value of this property.
     /// </summary>
-    public TypeNodeList Types{
+    public List<TypeNode> Types{
       get{
         if (this.types == null)
           if (this.ProvideTypes != null)
@@ -20499,7 +20496,7 @@ namespace System.Compiler{
               }
             }
           else
-            this.types = new TypeNodeList();
+            this.types = new List<TypeNode>();
         return this.types;       
       }
       set{
@@ -20575,7 +20572,7 @@ namespace System.Compiler{
     /// <summary>
     /// An anonymous (name is Identifier.Empty) namespace holding types and nested namespaces.
     /// </summary>
-    public NodeList Nodes;
+    public List<Node> Nodes;
     /// <summary>
     /// The preprocessor symbols that are to treated as defined when compiling this CompilationUnit into the TargetModule.
     /// </summary>
@@ -20683,7 +20680,7 @@ namespace System.Compiler{
     public Accessor AccessPlan;
     public Cardinality Cardinality;
     public int YieldCount;
-    public TypeNodeList YieldTypes;
+    public List<TypeNode> YieldTypes;
     public bool IsCyclic;
     public bool IsIterative;
     public QueryAxis (Expression source, bool isDescendant, Identifier name, TypeNode typeTest)
@@ -20784,25 +20781,25 @@ namespace System.Compiler{
   public class QueryGroupBy: QueryExpression{
     public Expression Source;
     public ContextScope GroupContext;
-    public ExpressionList GroupList;
-    public ExpressionList AggregateList;
+    public List<Expression> GroupList;
+    public List<Expression> AggregateList;
     public Expression Having;
     public ContextScope HavingContext;
     public QueryGroupBy(): base(NodeType.QueryGroupBy){
-      this.GroupList = new ExpressionList();
-      this.AggregateList = new ExpressionList();
+      this.GroupList = new List<Expression>();
+      this.AggregateList = new List<Expression>();
     }
   }  
   public class QueryInsert: QueryExpression{
     public Expression Location;
     public QueryInsertPosition Position;
-    public ExpressionList InsertList;
-    public ExpressionList HintList;
+    public List<Expression> InsertList;
+    public List<Expression> HintList;
     public ContextScope Context;
     public bool IsBracket;
     public QueryInsert(): base(NodeType.QueryInsert){
-      this.InsertList = new ExpressionList();
-      this.HintList = new ExpressionList();
+      this.InsertList = new List<Expression>();
+      this.HintList = new List<Expression>();
     }
   }    
   public enum QueryInsertPosition{
@@ -20827,10 +20824,10 @@ namespace System.Compiler{
   public class QueryIterator: QueryAlias{
     public TypeNode ElementType;
     public TypeNode TypeExpression;
-    public ExpressionList HintList;
+    public List<Expression> HintList;
     public QueryIterator(): base(){
       this.NodeType = NodeType.QueryIterator;      
-      this.HintList = new ExpressionList();
+      this.HintList = new List<Expression>();
     }
   }   
   public class QueryJoin: QueryExpression{
@@ -20859,9 +20856,9 @@ namespace System.Compiler{
   public class QueryOrderBy: QueryExpression{
     public Expression Source;
     public ContextScope Context;
-    public ExpressionList OrderList;
+    public List<Expression> OrderList;
     public QueryOrderBy(): base(NodeType.QueryOrderBy){
-      this.OrderList = new ExpressionList();
+      this.OrderList = new List<Expression>();
     }
   }
   public enum QueryOrderType{
@@ -20886,11 +20883,11 @@ namespace System.Compiler{
   public class QueryProject: QueryExpression{
     public Expression Source;
     public ContextScope Context;
-    public ExpressionList ProjectionList;
+    public List<Expression> ProjectionList;
     public TypeNode ProjectedType;
-    public MemberList Members;
+    public List<Member> Members;
     public QueryProject(): base(NodeType.QueryProject){
-      this.ProjectionList = new ExpressionList();
+      this.ProjectionList = new List<Expression>();
     }
   }   
   public class QueryQuantifiedExpression: QueryExpression{
@@ -20949,10 +20946,10 @@ namespace System.Compiler{
   }  
   public class QueryUpdate: QueryExpression{
     public Expression Source;
-    public ExpressionList UpdateList;
+    public List<Expression> UpdateList;
     public ContextScope Context;
     public QueryUpdate() : base(NodeType.QueryUpdate){
-      this.UpdateList = new ExpressionList();
+      this.UpdateList = new List<Expression>();
     }
   }
   public class QueryTransact: Statement{

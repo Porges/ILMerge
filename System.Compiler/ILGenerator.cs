@@ -35,7 +35,7 @@ namespace System.Compiler{
       this.VisitBlock(method.Body);
     }
 
-    protected virtual void VisitExceptionHandlers(ExceptionHandlerList ehandlers){
+    protected virtual void VisitExceptionHandlers(List<ExceptionHandler> ehandlers){
       //TODO: the list of ehandlers is sorted so that nested blocks always come first
       //When a handler does not have exactly the same start and end blocks as the previous handler, it is either a parent or a sibling.
       //When this transition occurs an end exception can be emitted when processing the last handler block of the previous handler.
@@ -513,7 +513,7 @@ namespace System.Compiler{
       }
       Label label = this.GetLabel(block);
       this.ILGenerator.MarkLabel(label);
-      StatementList statements = block.Statements;
+      List<Statement> statements = block.Statements;
       if (statements == null) return;
       if (block.HasLocals) this.ILGenerator.BeginScope();
       for (int i = 0, n = statements.Count; i < n; i++)
@@ -665,8 +665,8 @@ namespace System.Compiler{
       if (call == null) return;
       MemberBinding mb = (MemberBinding)call.Callee;
       this.Visit(mb.TargetObject);
-      ExpressionList arguments = call.Operands;
-      if (arguments == null) arguments = new ExpressionList(0);
+      List<Expression> arguments = call.Operands;
+      if (arguments == null) arguments = new List<Expression>(0);
       this.VisitExpressionList(arguments);
       if (call.IsTailCall)
         this.ILGenerator.Emit(OpCodes.Tailcall);
@@ -717,7 +717,7 @@ namespace System.Compiler{
     }
     protected virtual void VisitConstruct(Construct cons){
       if (cons == null) return;
-      ExpressionList operands = cons.Operands;
+      List<Expression> operands = cons.Operands;
       if (operands != null){
         this.VisitExpressionList(cons.Operands);
       }
@@ -751,7 +751,7 @@ namespace System.Compiler{
           return;
       }
     }
-    protected virtual void VisitExpressionList(ExpressionList expressions){
+    protected virtual void VisitExpressionList(List<Expression> expressions){
       if (expressions == null) return;
       for (int i = 0, n = expressions.Count; i < n; i++)
         this.Visit(expressions[i]);
@@ -925,7 +925,7 @@ namespace System.Compiler{
     protected virtual void VisitSwitchInstruction(SwitchInstruction switchInstruction) {
       if (switchInstruction == null) return;
       this.Visit(switchInstruction.Expression);
-      BlockList targets = switchInstruction.Targets;
+      List<Block> targets = switchInstruction.Targets;
       int n = targets != null ? targets.Count : 0;
       Label[] labelTable = new Label[n];
       for (int i = 0; i < n; i++)

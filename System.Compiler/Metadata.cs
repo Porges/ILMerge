@@ -1,7 +1,7 @@
 using System;
 #if FxCop
-using Win32ResourceList = Microsoft.Cci.Win32ResourceCollection;
-using TypeNodeList = Microsoft.Cci.TypeNodeCollection;
+using List<Win32Resource> = Microsoft.Cci.Win32ResourceCollection;
+using List<TypeNode> = Microsoft.Cci.TypeNodeCollection;
 #endif
 #if CCINamespace
 using Microsoft.Cci;
@@ -12,6 +12,7 @@ using System.Collections;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.Serialization;
+using System.Collections.Generic;
 
 //^ using Microsoft.Contracts;
 
@@ -144,7 +145,7 @@ namespace System.Compiler.Metadata{
     internal int Name;
     internal int Signature;
     internal Member Member;
-    internal TypeNodeList VarargTypes;
+    internal List<TypeNode> VarargTypes;
   }
   internal struct MethodRow{
     internal int RVA;
@@ -1163,8 +1164,8 @@ namespace System.Compiler.Metadata{
         }
       }
     }
-    internal Win32ResourceList ReadWin32Resources(){
-      Win32ResourceList rs = new Win32ResourceList();
+    internal List<Win32Resource> ReadWin32Resources(){
+      List<Win32Resource> rs = new List<Win32Resource>();
       int startPos = this.win32ResourcesOffset;
       if (startPos < 0) return rs;
       MemoryCursor c = this.cursor;
@@ -2157,7 +2158,7 @@ namespace System.Compiler.Metadata{
     internal MemoryStream TlsHeap;
     internal Guid[] GuidHeap;
     internal MemoryStream MethodBodiesHeap;
-    internal Win32ResourceList Win32Resources;
+    internal List<Win32Resource> Win32Resources;
     internal AssemblyRow[] assemblyTable;
     internal AssemblyRefRow[] assemblyRefTable;
     internal ClassLayoutRow[] classLayoutTable;
@@ -3236,7 +3237,7 @@ namespace System.Compiler.Metadata{
     private void WriteWin32Resources(BinaryWriter/*!*/ writer, int virtualAddressBase) 
       //^ requires this.Win32Resources != null;
     {
-      Win32ResourceList rsrcs = this.Win32Resources;
+      List<Win32Resource> rsrcs = this.Win32Resources;
       BinaryWriter dataHeap = new BinaryWriter(new MemoryStream(), System.Text.Encoding.Unicode);
       //Construct a tree of array lists to represent the directory and make it easier to compute offsets
       Directory TypeDirectory = new Directory("", 0);

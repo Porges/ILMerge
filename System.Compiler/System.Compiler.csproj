@@ -145,9 +145,6 @@
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="ILGenerator.cs" />
     <Compile Include="Inspector.cs" />
-    <Compile Include="ListTemplate.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="MemoryMappedFile.cs">
       <SubType>Code</SubType>
     </Compile>

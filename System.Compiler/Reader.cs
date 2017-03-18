@@ -2,24 +2,24 @@ using System;
 using System.Collections;
 #if FxCop
 using System.Collections.Generic;
-using AssemblyReferenceList = Microsoft.Cci.AssemblyReferenceCollection;
-using AttributeList = Microsoft.Cci.AttributeNodeCollection;
-using BlockList = Microsoft.Cci.BlockCollection;
-using ExpressionList = Microsoft.Cci.ExpressionCollection;
-using InstructionList = Microsoft.Cci.InstructionCollection;
-using Int32List = System.Collections.Generic.List<int>;
-using InterfaceList = Microsoft.Cci.InterfaceCollection;
-using LocalList = Microsoft.Cci.LocalCollection;
-using MemberList = Microsoft.Cci.MemberCollection;
-using MethodList = Microsoft.Cci.MethodCollection;
-using ModuleReferenceList = Microsoft.Cci.ModuleReferenceCollection;
-using NamespaceList = Microsoft.Cci.NamespaceCollection;
-using ParameterList = Microsoft.Cci.ParameterCollection;
-using ResourceList = Microsoft.Cci.ResourceCollection;
-using SecurityAttributeList = Microsoft.Cci.SecurityAttributeCollection;
-using StatementList = Microsoft.Cci.StatementCollection;
-using TypeNodeList = Microsoft.Cci.TypeNodeCollection;
-using Win32ResourceList = Microsoft.Cci.Win32ResourceCollection;
+using List<AssemblyReference> = Microsoft.Cci.AssemblyReferenceCollection;
+using List<AttributeNode> = Microsoft.Cci.AttributeNodeCollection;
+using List<Block> = Microsoft.Cci.BlockCollection;
+using List<Expression> = Microsoft.Cci.ExpressionCollection;
+using List<Instruction> = Microsoft.Cci.InstructionCollection;
+using List<int> = System.Collections.Generic.List<int>;
+using List<Interface> = Microsoft.Cci.InterfaceCollection;
+using List<Local> = Microsoft.Cci.LocalCollection;
+using List<Member> = Microsoft.Cci.MemberCollection;
+using List<Method> = Microsoft.Cci.MethodCollection;
+using List<ModuleReference> = Microsoft.Cci.ModuleReferenceCollection;
+using List<Namespace> = Microsoft.Cci.NamespaceCollection;
+using List<Parameter> = Microsoft.Cci.ParameterCollection;
+using List<Resource> = Microsoft.Cci.ResourceCollection;
+using List<SecurityAttribute> = Microsoft.Cci.SecurityAttributeCollection;
+using List<Statement> = Microsoft.Cci.StatementCollection;
+using List<TypeNode> = Microsoft.Cci.TypeNodeCollection;
+using List<Win32Resource> = Microsoft.Cci.Win32ResourceCollection;
 using Property = Microsoft.Cci.PropertyNode;
 using Module = Microsoft.Cci.ModuleNode;
 using Class = Microsoft.Cci.ClassNode;
@@ -42,6 +42,7 @@ using System.Globalization;
 using Marshal = System.Runtime.InteropServices.Marshal;
 using System.Runtime.InteropServices;
 using System.IO;
+using System.Collections.Generic;
 
 #if CCINamespace
 namespace Microsoft.Cci.Metadata{
@@ -191,7 +192,7 @@ namespace System.Compiler.Metadata{
     private bool useStaticCache;
     //^ [Microsoft.Contracts.SpecInternal]
     private TrivialHashtable namespaceTable;
-    internal NamespaceList namespaceList;
+    internal List<Namespace> namespaceList;
 #if CodeContracts
     internal PdbInfo pdbInfo;
 #endif
@@ -206,8 +207,8 @@ namespace System.Compiler.Metadata{
 #endif
     internal bool getDebugSymbols;
     private bool getDebugSymbolsFailed;
-    private TypeNodeList currentTypeParameters;
-    private TypeNodeList currentMethodTypeParameters;
+    private List<TypeNode> currentTypeParameters;
+    private List<TypeNode> currentMethodTypeParameters;
     internal bool preserveShortBranches;
 #if !MinimalReader
     internal unsafe Reader(byte[]/*!*/ buffer, IDictionary localAssemblyCache, bool doNotLockFile, bool getDebugInfo, bool useStaticCache, bool preserveShortBranches) {
@@ -643,7 +644,7 @@ namespace System.Compiler.Metadata{
     private void ReadAssemblyReferences(Module/*!*/ module) {
       AssemblyRefRow[] assems = this.tables.AssemblyRefTable;
       int n = assems.Length;
-      AssemblyReferenceList assemblies = module.AssemblyReferences = new AssemblyReferenceList(n);
+      List<AssemblyReference> assemblies = module.AssemblyReferences = new List<AssemblyReference>(n);
       for (int i = 0; i < n; i++){
         AssemblyRefRow arr = assems[i];
         AssemblyReference assemRef = new AssemblyReference();
@@ -667,7 +668,7 @@ namespace System.Compiler.Metadata{
       FileRow[] files = this.tables.FileTable;
       ModuleRefRow[] modRefs = this.tables.ModuleRefTable;
       int n = modRefs.Length;
-      ModuleReferenceList modules = module.ModuleReferences = new ModuleReferenceList(n);
+      List<ModuleReference> modules = module.ModuleReferences = new List<ModuleReference>(n);
       for (int i = 0; i < n; i++){
         Module mod;
         int nameIndex = modRefs[i].Name;
@@ -747,7 +748,7 @@ namespace System.Compiler.Metadata{
           type.members.Add(method);
       }
     }
-    private void AddMoreStuffToParameters(Method method, ParameterList parameters, int start, int end) {
+    private void AddMoreStuffToParameters(Method method, List<Parameter> parameters, int start, int end) {
       ParamRow[] pars = this.tables.ParamTable;
       int n = parameters == null ? 0 : parameters.Count;
       for (int i = start; i < end; i++){
@@ -876,7 +877,7 @@ namespace System.Compiler.Metadata{
             case 0x0001 : property.Setter = propertyMethod; break;
             case 0x0002 : property.Getter = propertyMethod; break;
             default:
-              if (property.OtherMethods == null) property.OtherMethods = new MethodList();
+              if (property.OtherMethods == null) property.OtherMethods = new List<Method>();
               property.OtherMethods.Add(propertyMethod); break;
           }
         }else if (sorted)
@@ -930,7 +931,7 @@ namespace System.Compiler.Metadata{
             case 0x0010: evnt.HandlerRemover = eventMethod; handlerFlags = eventMethod.Flags; break;
             case 0x0020: evnt.HandlerCaller = eventMethod; break;
             default:
-              if (evnt.OtherMethods == null) evnt.OtherMethods = new MethodList();
+              if (evnt.OtherMethods == null) evnt.OtherMethods = new List<Method>();
               evnt.OtherMethods.Add(eventMethod); break;
           }
         }else if (sorted)
@@ -1261,7 +1262,7 @@ namespace System.Compiler.Metadata{
       int tok = sigReader.ReadCompressedInt();
       if (tok != expectedToken) throw new InvalidMetadataException(ExceptionStrings.MalformedSignature);
     }
-    private Method GetConstructorDefOrRef(int codedIndex, out TypeNodeList varArgTypes) {
+    private Method GetConstructorDefOrRef(int codedIndex, out List<TypeNode> varArgTypes) {
       varArgTypes = null;
       switch(codedIndex & 0x7){
         case 0x02 : return this.GetMethodFromDef(codedIndex >> 3); 
@@ -1272,7 +1273,7 @@ namespace System.Compiler.Metadata{
     private void GetResources(Module/*!*/ module) {
       ManifestResourceRow[] manifestResourceTable = this.tables.ManifestResourceTable;
       int n = manifestResourceTable.Length; 
-      ResourceList resources = new ResourceList(n);
+      List<Resource> resources = new List<Resource>(n);
       for (int i = 0; i < n; i++){
         ManifestResourceRow mrr = manifestResourceTable[i];
         Resource r = new Resource();
@@ -1320,8 +1321,8 @@ namespace System.Compiler.Metadata{
       attr.SerializedPermissions = (string)this.tables.GetBlobString(dsr.PermissionSet);
       return attr;
     }
-    private AttributeList GetPermissionAttributes(int blobIndex, System.Security.Permissions.SecurityAction action){
-      AttributeList result = new AttributeList();
+    private List<AttributeNode> GetPermissionAttributes(int blobIndex, System.Security.Permissions.SecurityAction action){
+      List<AttributeNode> result = new List<AttributeNode>();
       int blobLength;
       MemoryCursor sigReader = this.tables.GetBlobCursor(blobIndex, out blobLength);
       if (blobLength == 0) return null;
@@ -1348,13 +1349,13 @@ namespace System.Compiler.Metadata{
       sigReader.ReadInt32(); //Skip over assembly ref token
       int caBlobLength = sigReader.ReadInt32();
       sigReader.ReadInt32(); //Skip over the number of parameters in the CA blob
-      TypeNodeList varArgTypes; //Ignored because vararg constructors are not allowed in Custom Attributes
+      List<TypeNode> varArgTypes; //Ignored because vararg constructors are not allowed in Custom Attributes
       Method cons = this.GetConstructorDefOrRef(constructorToken, out varArgTypes);
       if (cons == null) cons = new Method();
       return this.GetCustomAttribute(cons, sigReader, caBlobLength);
     }
-    private AttributeList GetPermissionAttributes2(int blobIndex, System.Security.Permissions.SecurityAction action){
-      AttributeList result = new AttributeList();
+    private List<AttributeNode> GetPermissionAttributes2(int blobIndex, System.Security.Permissions.SecurityAction action){
+      List<AttributeNode> result = new List<AttributeNode>();
       int blobLength;
       MemoryCursor sigReader = this.tables.GetBlobCursor(blobIndex, out blobLength);
       if (blobLength == 0) return null;
@@ -1387,7 +1388,7 @@ namespace System.Compiler.Metadata{
       }
       sigReader.ReadCompressedInt(); //caBlobLength
       int numProps = sigReader.ReadCompressedInt(); //Skip over the number of properties in the CA blob
-      ExpressionList arguments = new ExpressionList(numProps+1);
+      List<Expression> arguments = new List<Expression>(numProps+1);
       arguments.Add(new Literal(action, CoreSystemTypes.SecurityAction));
       this.GetCustomAttributeNamedArguments(arguments, (ushort)numProps, sigReader);
       return new AttributeNode(new MemberBinding(null, cons), arguments);
@@ -1404,7 +1405,7 @@ namespace System.Compiler.Metadata{
     }
     private AttributeNode GetCustomAttribute(int i){
       CustomAttributeRow ca = this.tables.CustomAttributeTable[i];
-      TypeNodeList varArgTypes; //Ignored because vararg constructors are not allowed in Custom Attributes
+      List<TypeNode> varArgTypes; //Ignored because vararg constructors are not allowed in Custom Attributes
       Method cons = this.GetConstructorDefOrRef(ca.Constructor, out varArgTypes);
       if (cons == null) cons = new Method();
       int blobLength;
@@ -1415,7 +1416,7 @@ namespace System.Compiler.Metadata{
       AttributeNode attr = new AttributeNode();
       attr.Constructor = new MemberBinding(null, cons);
       int n = cons.Parameters == null ? 0 : cons.Parameters.Count;
-      ExpressionList arguments = attr.Expressions = new ExpressionList(n);
+      List<Expression> arguments = attr.Expressions = new List<Expression>(n);
       int posAtBlobStart = sigReader.Position;
       sigReader.ReadUInt16(); //Prolog
       for (int j = 0; j < n; j++){
@@ -1443,7 +1444,7 @@ namespace System.Compiler.Metadata{
       }
       return attr;
     }
-    private void GetCustomAttributeNamedArguments(ExpressionList/*!*/ arguments, ushort numNamed, MemoryCursor/*!*/ sigReader) {
+    private void GetCustomAttributeNamedArguments(List<Expression>/*!*/ arguments, ushort numNamed, MemoryCursor/*!*/ sigReader) {
       for (int j = 0; j < numNamed; j++){
         int nameTag = sigReader.ReadByte();
         bool mustBox = sigReader.Byte(0) == (byte)ElementType.BoxedEnum;
@@ -1680,7 +1681,7 @@ namespace System.Compiler.Metadata{
       //Generic type instance
       int offset = 0;
       if (typeName[0] == '[') offset = 1; //Assembly qualified type name forming part of a generic parameter list        
-      TypeNodeList arguments = new TypeNodeList();
+      List<TypeNode> arguments = new List<TypeNode>();
       int commaPos = FindFirstCommaOutsideBrackets(typeName);
       while (commaPos > 1){
         arguments.Add(this.GetTypeFromSerializedName(typeName.Substring(offset, commaPos-offset)));
@@ -1758,7 +1759,7 @@ namespace System.Compiler.Metadata{
         return CoreSystemTypes.SystemAssembly.GetType(namespaceId, nameId);
       }
       //See if the type is in one of the assemblies explcitly referenced by the current module
-      AssemblyReferenceList arefs = module.AssemblyReferences;
+      List<AssemblyReference> arefs = module.AssemblyReferences;
       for (int i = 0, n = arefs == null ? 0 : arefs.Count; i < n; i++){
         AssemblyReference aref = arefs[i];
         if (aref != null && aref.StrongName == assemblyName && aref.Assembly != null) {
@@ -1798,20 +1799,20 @@ namespace System.Compiler.Metadata{
         if (this.module == null) return;
         if (this.module.MetadataImportErrors == null) this.module.MetadataImportErrors = new ArrayList();
         this.module.MetadataImportErrors.Add(e);
-        module.Attributes = new AttributeList(0);
+        module.Attributes = new List<AttributeNode>(0);
       }
 #else
       }finally{}
 #endif
     }
-    private AttributeList/*!*/ GetCustomAttributesNonNullFor(int parentIndex) {
+    private List<AttributeNode>/*!*/ GetCustomAttributesNonNullFor(int parentIndex) {
       var result = GetCustomAttributesFor(parentIndex);
       if (result != null) return result;
-      return new AttributeList(0);
+      return new List<AttributeNode>(0);
     }
-    private AttributeList GetCustomAttributesFor(int parentIndex) {
+    private List<AttributeNode> GetCustomAttributesFor(int parentIndex) {
       CustomAttributeRow[] customAttributes = this.tables.CustomAttributeTable;
-      AttributeList attributes = null;
+      List<AttributeNode> attributes = null;
       try{
         int i = 0, n = customAttributes.Length, j = n-1;
         if (n == 0) return null;
@@ -1833,7 +1834,7 @@ namespace System.Compiler.Metadata{
           else if (sorted)
             break;
         if (count > 0) {
-          attributes = new AttributeList(count);
+          attributes = new List<AttributeNode>(count);
         }
         for (; i < n; i++)
           if (customAttributes[i].Parent == parentIndex)
@@ -1851,9 +1852,9 @@ namespace System.Compiler.Metadata{
 #endif
       return attributes;
     }
-    private SecurityAttributeList GetSecurityAttributesFor(int parentIndex){
+    private List<SecurityAttribute> GetSecurityAttributesFor(int parentIndex){
       DeclSecurityRow[] securityAttributes = this.tables.DeclSecurityTable;
-      SecurityAttributeList attributes = new SecurityAttributeList();
+      List<SecurityAttribute> attributes = new List<SecurityAttribute>();
       try{
         int i = 0, n = securityAttributes.Length, j = n-1;
         if (n == 0) return attributes;
@@ -1884,7 +1885,7 @@ namespace System.Compiler.Metadata{
 #endif
       return attributes;
     }
-    private void GetTypeParameterConstraints(int parentIndex, TypeNodeList parameters){
+    private void GetTypeParameterConstraints(int parentIndex, List<TypeNode> parameters){
       if (parameters == null) return;
       GenericParamRow[] genericParameters = this.tables.GenericParamTable;
       int i = 0, n = genericParameters.Length, j = n-1;
@@ -1907,9 +1908,9 @@ namespace System.Compiler.Metadata{
         } else if (sorted)
           break;
     }
-    private TypeNodeList GetTypeParametersFor(int parentIndex, Member parent){
+    private List<TypeNode> GetTypeParametersFor(int parentIndex, Member parent){
       GenericParamRow[] genericParameters = this.tables.GenericParamTable;
-      TypeNodeList types = new TypeNodeList();
+      List<TypeNode> types = new List<TypeNode>();
       int i = 0, n = genericParameters.Length, j = n-1;
       bool sorted = (this.sortedTablesMask >> (int)TableIndices.GenericParam) % 2 == 1;
       if (sorted){
@@ -1979,9 +1980,9 @@ namespace System.Compiler.Metadata{
       Debug.Assert(parameter != null);
       index++;
       GenericParamConstraintRow[] genericParameterConstraints = this.tables.GenericParamConstraintTable;
-      TypeNodeList constraints = new TypeNodeList();
+      List<TypeNode> constraints = new List<TypeNode>();
       Class baseClass = null;
-      InterfaceList interfaces = new InterfaceList();
+      List<Interface> interfaces = new List<Interface>();
       int i = 0, n = genericParameterConstraints.Length, j = n-1;
       bool sorted = (this.sortedTablesMask >> (int)TableIndices.GenericParamConstraint) % 2 == 1;
       if (sorted){
@@ -2037,7 +2038,7 @@ namespace System.Compiler.Metadata{
     internal static Block/*!*/ GetOrCreateBlock(TrivialHashtable/*!*/ blockMap, int address) {
       Block block = (Block)blockMap[address+1];
       if (block == null){
-        blockMap[address+1] = block = new Block(new StatementList());
+        blockMap[address+1] = block = new Block(new List<Statement>());
 #if !FxCop && !CodeContracts
         var sctx = block.SourceContext;
         sctx.StartPos = address;
@@ -2219,7 +2220,7 @@ namespace System.Compiler.Metadata{
       MemoryCursor sigReader = this.tables.GetBlobCursor(ssr.Signature);
       return this.ParseFunctionPointer(sigReader);
     }
-    internal void GetLocals(int localIndex, LocalList/*!*/ locals, System.Collections.Generic.Dictionary<int,LocalInfo>/*!*/ localSourceNames) {
+    internal void GetLocals(int localIndex, List<Local>/*!*/ locals, System.Collections.Generic.Dictionary<int,LocalInfo>/*!*/ localSourceNames) {
       if (localIndex == 0) return;
       StandAloneSigRow ssr = this.tables.StandAloneSigTable[(localIndex & 0xFFFFFF)-1];
       this.tables.GetSignatureLength(ssr.Signature);
@@ -2350,20 +2351,20 @@ namespace System.Compiler.Metadata{
     }
     private void GetMethodBody(Method/*!*/ method, object/*!*/ i, bool asInstructionList) {
       if (asInstructionList){this.GetMethodInstructions(method, i); return;}
-      TypeNodeList savedCurrentMethodTypeParameters = this.currentMethodTypeParameters;
+      List<TypeNode> savedCurrentMethodTypeParameters = this.currentMethodTypeParameters;
       this.currentMethodTypeParameters = method.templateParameters;
       TypeNode savedCurrentType = this.currentType;
       this.currentType = method.DeclaringType;
-      TypeNodeList savedCurrentTypeParameters = this.currentTypeParameters;
+      List<TypeNode> savedCurrentTypeParameters = this.currentTypeParameters;
       this.currentTypeParameters = this.currentType.TemplateParameters;
       try{
         MethodRow meth = this.tables.MethodTable[((int)i)-1];
-        StatementList statements;
+        List<Statement> statements;
         if (meth.RVA != 0 && (((MethodImplFlags)meth.ImplFlags) & MethodImplFlags.ManagedMask) == MethodImplFlags.Managed){
           if (this.getDebugSymbols) this.GetMethodDebugSymbols(method, 0x6000000|(uint)(int)i);
           statements = this.ParseMethodBody(method, (int)i, meth.RVA);
         }else
-          statements = new StatementList(0);
+          statements = new List<Statement>(0);
         method.Body = new Block(statements);
 #if FxCop
         if (statements.Count > 0) {
@@ -2381,7 +2382,7 @@ namespace System.Compiler.Metadata{
           if (this.module.MetadataImportErrors == null) this.module.MetadataImportErrors = new ArrayList();
           this.module.MetadataImportErrors.Add(e);
         }
-        method.Body = new Block(new StatementList(0));
+        method.Body = new Block(new List<Statement>(0));
 #endif
       }finally{
         this.currentMethodTypeParameters = savedCurrentMethodTypeParameters;
@@ -2430,7 +2431,7 @@ namespace System.Compiler.Metadata{
     }
 #endif
     private void GetMethodInstructions(Method/*!*/ method, object/*!*/ i) {
-      TypeNodeList savedCurrentMethodTypeParameters = this.currentMethodTypeParameters;
+      List<TypeNode> savedCurrentMethodTypeParameters = this.currentMethodTypeParameters;
       this.currentMethodTypeParameters = method.templateParameters;
       TypeNode savedCurrentType = this.currentType;
       this.currentType = method.DeclaringType;
@@ -2440,14 +2441,14 @@ namespace System.Compiler.Metadata{
           if (this.getDebugSymbols) this.GetMethodDebugSymbols(method, 0x6000000|(uint)(int)i);
           method.Instructions = this.ParseMethodInstructions(method, (int)i, meth.RVA);
         }else
-          method.Instructions = new InstructionList(0);
+          method.Instructions = new List<Instruction>(0);
 #if !FxCop
       }catch(Exception e){
         if (this.module != null){
           if (this.module.MetadataImportErrors == null) this.module.MetadataImportErrors = new ArrayList();
           this.module.MetadataImportErrors.Add(e);
         }
-        method.Instructions = new InstructionList(0);
+        method.Instructions = new List<Instruction>(0);
 #endif
       }finally{
         this.currentMethodTypeParameters = savedCurrentMethodTypeParameters;
@@ -2458,7 +2459,7 @@ namespace System.Compiler.Metadata{
       switch(codedIndex & 0x1){
         case 0x00 : return this.GetMethodFromDef(codedIndex >> 1); 
         case 0x01 :
-          TypeNodeList varArgTypes;
+          List<TypeNode> varArgTypes;
           return (Method)this.GetMemberFromRef(codedIndex >> 1, out varArgTypes);
       }
       throw new InvalidMetadataException(ExceptionStrings.BadCustomAttributeTypeEncodedToken);
@@ -2467,7 +2468,7 @@ namespace System.Compiler.Metadata{
       switch(codedIndex & 0x1){
         case 0x00 : return this.GetMethodFromDef(codedIndex >> 1); 
         case 0x01 :
-          TypeNodeList varArgTypes;
+          List<TypeNode> varArgTypes;
           return (Method)this.GetMemberFromRef(codedIndex >> 1, out varArgTypes, numberOfGenericArguments);
       }
       throw new InvalidMetadataException(ExceptionStrings.BadCustomAttributeTypeEncodedToken);
@@ -2476,8 +2477,8 @@ namespace System.Compiler.Metadata{
       return this.GetMethodFromDef(index, null);
     }
     internal Method/*!*/ GetMethodFromDef(int index, TypeNode declaringType) {
-      TypeNodeList savedCurrentMethodTypeParameters = this.currentMethodTypeParameters;
-      TypeNodeList savedCurrentTypeParameters = this.currentTypeParameters;
+      List<TypeNode> savedCurrentMethodTypeParameters = this.currentMethodTypeParameters;
+      List<TypeNode> savedCurrentTypeParameters = this.currentTypeParameters;
       MethodRow[] methodDefs = this.tables.MethodTable;
       MethodRow meth = methodDefs[index-1];
       if (meth.Method != null) return meth.Method;
@@ -2589,7 +2590,7 @@ namespace System.Compiler.Metadata{
       method.CallingConvention = (CallingConventionFlags)sigReader.ReadByte();
       if (method.IsGeneric = (method.CallingConvention & CallingConventionFlags.Generic) != 0){
         int numTemplateParameters = sigReader.ReadCompressedInt();
-        this.currentMethodTypeParameters = new TypeNodeList(numTemplateParameters);
+        this.currentMethodTypeParameters = new List<TypeNode>(numTemplateParameters);
         this.currentMethodTypeParameters = method.TemplateParameters = this.GetTypeParametersFor((index << 1)|1, method);
         this.GetTypeParameterConstraints((index << 1)|1, method.TemplateParameters);
       }
@@ -2601,7 +2602,7 @@ namespace System.Compiler.Metadata{
       else
         method.ThisParameter = new This(declaringType);
 #endif // materialized on demand
-      ParameterList paramList = method.Parameters = new ParameterList(numParams);
+      List<Parameter> paramList = method.Parameters = new List<Parameter>(numParams);
       if (numParams > 0){
         int offset = method.IsStatic ? 0 : 1;
         for (int i = 0; i < numParams; i++){
@@ -2712,8 +2713,8 @@ namespace System.Compiler.Metadata{
       return method;
     }
     private void GetMethodAttributes(Method/*!*/ method, object/*!*/ handle) {
-      TypeNodeList savedCurrentTypeParameters = this.currentTypeParameters;
-      TypeNodeList savedCurrentMethodTypeParameters = this.currentMethodTypeParameters;
+      List<TypeNode> savedCurrentTypeParameters = this.currentTypeParameters;
+      List<TypeNode> savedCurrentMethodTypeParameters = this.currentMethodTypeParameters;
       try {
         MetadataReader tables = this.tables;
         int index = (int)handle;
@@ -2736,7 +2737,7 @@ namespace System.Compiler.Metadata{
           if (this.module.MetadataImportErrors == null) this.module.MetadataImportErrors = new ArrayList();
           this.module.MetadataImportErrors.Add(e);
         }
-        method.Attributes = new AttributeList(0);
+        method.Attributes = new List<AttributeNode>(0);
         this.currentTypeParameters = savedCurrentTypeParameters;
         this.currentMethodTypeParameters = savedCurrentMethodTypeParameters;
       }
@@ -2751,17 +2752,17 @@ namespace System.Compiler.Metadata{
       MemoryCursor sigReader = this.tables.GetBlobCursor(msr.Instantiation);
       byte header = sigReader.ReadByte(); //skip over redundant header byte
       Debug.Assert(header == 0x0a);
-      TypeNodeList templateArguments = this.ParseTypeList(sigReader);
+      List<TypeNode> templateArguments = this.ParseTypeList(sigReader);
       Method template = this.GetMethodDefOrRef(msr.Method, templateArguments.Count);
       if (template == null) return new Method();
       if (template.TemplateParameters == null) return template; //Likely a dummy method
       return template.GetTemplateInstance(this.currentType, templateArguments);
     }
     internal Member/*!*/ GetMemberFromToken(int tok, object memberInfo = null) {
-      TypeNodeList varArgTypes;
+      List<TypeNode> varArgTypes;
       return this.GetMemberFromToken(tok, out varArgTypes, memberInfo);
     }
-    internal Member/*!*/ GetMemberFromToken(int tok, out TypeNodeList varArgTypes, object memberInfo = null) {
+    internal Member/*!*/ GetMemberFromToken(int tok, out List<TypeNode> varArgTypes, object memberInfo = null) {
       varArgTypes = null;
       Member member = null;
       switch ((TableIndices)(tok >> 24)){
@@ -2777,10 +2778,10 @@ namespace System.Compiler.Metadata{
       if (member == null) throw new InvalidMetadataException(ExceptionStrings.BadMemberToken);
       return member;
     }
-    internal Member GetMemberFromRef(int i, out TypeNodeList varArgTypes, object memberInfo = null) {
+    internal Member GetMemberFromRef(int i, out List<TypeNode> varArgTypes, object memberInfo = null) {
       return this.GetMemberFromRef(i, out varArgTypes, 0, memberInfo);
     }
-    internal Member GetMemberFromRef(int i, out TypeNodeList varArgTypes, int numGenericArgs, object memberInfo = null) {
+    internal Member GetMemberFromRef(int i, out List<TypeNode> varArgTypes, int numGenericArgs, object memberInfo = null) {
       MemberRefRow mref = this.tables.MemberRefTable[i-1];
       if (mref.Member != null){
         varArgTypes = mref.VarargTypes;
@@ -2791,7 +2792,7 @@ namespace System.Compiler.Metadata{
       int codedIndex = mref.Class;
       if (codedIndex == 0) return null;
       TypeNode parent = null;
-      TypeNodeList savedCurrentTypeParameters = this.currentTypeParameters;
+      List<TypeNode> savedCurrentTypeParameters = this.currentTypeParameters;
       switch(codedIndex & 0x7){
         case 0x00 : parent = this.GetTypeFromDef(codedIndex >> 3); break;
         case 0x01 : parent = this.GetTypeFromRef(codedIndex >> 3); break;
@@ -2825,7 +2826,7 @@ namespace System.Compiler.Metadata{
         TypeNode fType = TypeNode.StripModifiers(fieldType);
         TypeNode parnt = parent;
         while (parnt != null){
-          MemberList members = parnt.Members;
+          List<Member> members = parnt.Members;
           for (int j = 0, n = members.Count; j < n; j++){
             Field f = members[j] as Field;
             if (f == null) continue;
@@ -2864,12 +2865,12 @@ namespace System.Compiler.Metadata{
         callingConvention |= CallingConventionFlags.Generic;
       }
       int paramCount = sigReader.ReadCompressedInt();
-      TypeNodeList savedMethodTypeParameters = this.currentMethodTypeParameters;
+      List<TypeNode> savedMethodTypeParameters = this.currentMethodTypeParameters;
       TypeNode pnt = parent;
       if (numGenericArgs > 0){
         bool skip = methodToSkipPastWhenLookingForMethodParameters != null;
         while (pnt != null){
-          MemberList members = pnt.GetMembersNamed(memberName);        
+          List<Member> members = pnt.GetMembersNamed(memberName);        
           for (int k = 0, n = members.Count; k < n; k++){
             Method m = members[k] as Method;
             if (m == null) continue;
@@ -2893,12 +2894,12 @@ namespace System.Compiler.Metadata{
       TypeNode returnType = this.ParseTypeSignature(sigReader);
       if (returnType == null) returnType = CoreSystemTypes.Object;
       bool genericParameterEncountered = returnType.IsGeneric;
-      TypeNodeList paramTypes = this.ParseParameterTypes(out varArgTypes, sigReader, paramCount, ref genericParameterEncountered);
+      List<TypeNode> paramTypes = this.ParseParameterTypes(out varArgTypes, sigReader, paramCount, ref genericParameterEncountered);
       this.currentMethodTypeParameters = savedMethodTypeParameters;
       this.currentTypeParameters = savedCurrentTypeParameters;
       pnt = parent;
       while (pnt != null){
-        MemberList members = pnt.GetMembersNamed(memberName);        
+        List<Member> members = pnt.GetMembersNamed(memberName);        
         for (int k = 0, n = members.Count; k < n; k++){
           Method m = members[k] as Method;
           if (m == null) continue;
@@ -2939,7 +2940,7 @@ namespace System.Compiler.Metadata{
       }
       if (result == null){
         if (methodToSkipPastWhenLookingForMethodParameters != null) goto tryAgain;
-        ParameterList parameters = new ParameterList(paramCount);
+        List<Parameter> parameters = new List<Parameter>(paramCount);
         for (int j = 0; j < paramCount; j++){
           Parameter p = new Parameter(Identifier.Empty, paramTypes[j]);
           parameters.Add(p);
@@ -2964,8 +2965,8 @@ namespace System.Compiler.Metadata{
       this.currentTypeParameters = savedCurrentTypeParameters;
       return result;
     }
-    private Method SearchBaseInterface(Interface iface, Identifier memberName, TypeNode returnType, TypeNodeList paramTypes, int typeParamCount, CallingConventionFlags callingConvention) {
-      MemberList members = iface.GetMembersNamed(memberName);
+    private Method SearchBaseInterface(Interface iface, Identifier memberName, TypeNode returnType, List<TypeNode> paramTypes, int typeParamCount, CallingConventionFlags callingConvention) {
+      List<Member> members = iface.GetMembersNamed(memberName);
       for (int k = 0, n = members.Count; k < n; k++) {
         Method m = members[k] as Method;
         if (m == null) continue;
@@ -3000,14 +3001,14 @@ namespace System.Compiler.Metadata{
         (member.NodeType != NodeType.Method || CanCacheMethodHelper((Method)member));
     }
 
-    private TypeNodeList/*!*/ ParseParameterTypes(out TypeNodeList varArgTypes, MemoryCursor/*!*/ sigReader, int paramCount, ref bool genericParameterEncountered) {
+    private List<TypeNode>/*!*/ ParseParameterTypes(out List<TypeNode> varArgTypes, MemoryCursor/*!*/ sigReader, int paramCount, ref bool genericParameterEncountered) {
       varArgTypes = null;
-      TypeNodeList paramTypes = new TypeNodeList(paramCount);
+      List<TypeNode> paramTypes = new List<TypeNode>(paramCount);
       for (int j = 0; j < paramCount; j++) {
         TypeNode paramType = this.ParseTypeSignature(sigReader);
         if (paramType == null) {
           //got a sentinel
-          varArgTypes = new TypeNodeList(paramCount - j);
+          varArgTypes = new List<TypeNode>(paramCount - j);
           j--;
           continue;
         }
@@ -3031,13 +3032,13 @@ namespace System.Compiler.Metadata{
       if ((typeDef.Flags & (int)TypeFlags.Interface) != 0) return false;
       return this.TypeDefOrRefOrSpecIsClassButNotValueTypeBaseClass(typeDef.Extends);
     }
-    internal TypeNodeList GetInstantiatedTypes() {
-      TypeNodeList result = null;
+    internal List<TypeNode> GetInstantiatedTypes() {
+      List<TypeNode> result = null;
       TypeDefRow[] typeDefs = this.tables.TypeDefTable;
       for (int i = 0, n = typeDefs.Length; i < n; i++){
         TypeNode t = typeDefs[i].Type;
         if (t == null) continue;
-        if (result == null) result = new TypeNodeList();
+        if (result == null) result = new List<TypeNode>();
         result.Add(t);
       }
       return result;
@@ -3046,7 +3047,7 @@ namespace System.Compiler.Metadata{
       TypeDefRow typeDef = this.tables.TypeDefTable[i-1];
       if (typeDef.Type != null) return typeDef.Type;
       // Save current state because the helper might change it but this method must not.
-      TypeNodeList savedCurrentTypeParameters = this.currentTypeParameters;
+      List<TypeNode> savedCurrentTypeParameters = this.currentTypeParameters;
       TypeNode savedCurrentType = this.currentType;
       try{
         return this.GetTypeFromDefHelper(i);
@@ -3082,14 +3083,14 @@ namespace System.Compiler.Metadata{
       int firstInterfaceIndex;
       int lastInterfaceIndex;
       this.GetInterfaceIndices(i, out firstInterfaceIndex, out lastInterfaceIndex);
-      InterfaceList interfaces = new InterfaceList();
+      List<Interface> interfaces = new List<Interface>();
       result = this.ConstructCorrectTypeNodeSubclass(i, namesp, firstInterfaceIndex, lastInterfaceIndex, 
         (TypeFlags)typeDef.Flags, interfaces, typeDef.Extends, 
         name.UniqueIdKey == StandardIds.Enum.UniqueIdKey && namesp.UniqueIdKey == StandardIds.System.UniqueIdKey);
       result.DeclaringModule = this.module;
       result.Name = name;
       result.Namespace = namesp;
-      TypeNodeList typeParameters = this.currentTypeParameters = this.GetTypeParametersFor((i << 1)|0, result);
+      List<TypeNode> typeParameters = this.currentTypeParameters = this.GetTypeParametersFor((i << 1)|0, result);
       result.TemplateParameters = typeParameters;
       result.IsGeneric = typeParameters != null;
       this.tables.TypeDefTable[i-1].Type = result;
@@ -3142,7 +3143,7 @@ namespace System.Compiler.Metadata{
       }
     }
 
-    private void GetInterfaces(int i, int firstInterfaceIndex, InterfaceList/*!*/ interfaces) {
+    private void GetInterfaces(int i, int firstInterfaceIndex, List<Interface>/*!*/ interfaces) {
       InterfaceImplRow[] intfaces = this.tables.InterfaceImplTable;
       for (int j = firstInterfaceIndex, n = intfaces.Length; j < n; j++) {
         if (intfaces[j].Class != i) continue; //TODO: break if sorted
@@ -3158,12 +3159,12 @@ namespace System.Compiler.Metadata{
         }
         interfaces.Add(iface);
         var implAttrs = this.GetCustomAttributesFor((j << 5)|5);
-        if (implAttrs != null)
-          interfaces.AddAttributes(interfaces.Count-1, implAttrs);
+        //if (implAttrs != null)
+        //  interfaces.AddAttributes(interfaces.Count-1, implAttrs);
       }
     }
 
-    private void RemoveTypeParametersBelongingToDeclaringType(int i, ref TypeNodeList typeParameters, TypeNode/*!*/ type) {
+    private void RemoveTypeParametersBelongingToDeclaringType(int i, ref List<TypeNode> typeParameters, TypeNode/*!*/ type) {
       NestedClassRow[] nestedClasses = tables.NestedClassTable;
       for (int j = 0, n = nestedClasses.Length; j < n; j++) { //TODO: binary search
         NestedClassRow ncr = nestedClasses[j];
@@ -3177,7 +3178,7 @@ namespace System.Compiler.Metadata{
               if (icount >= rcount)
                 type.templateParameters = null;
               else {
-                TypeNodeList tpars = new TypeNodeList(rcount - icount);
+                List<TypeNode> tpars = new List<TypeNode>(rcount - icount);
                 for (int k = icount; k < rcount; k++)
                   tpars.Add(type.templateParameters[k]);
                 type.templateParameters = tpars;
@@ -3191,7 +3192,7 @@ namespace System.Compiler.Metadata{
     }
 
     private TypeNode/*!*/ ConstructCorrectTypeNodeSubclass(int i, Identifier/*!*/ namesp, int firstInterfaceIndex, int lastInterfaceIndex,
-      TypeFlags flags, InterfaceList interfaces, int baseTypeCodedIndex, bool isSystemEnum){
+      TypeFlags flags, List<Interface> interfaces, int baseTypeCodedIndex, bool isSystemEnum){
       TypeNode result;
       TypeNode.TypeAttributeProvider attributeProvider = new TypeNode.TypeAttributeProvider(this.GetTypeAttributes);
       TypeNode.NestedTypeProvider nestedTypeProvider = new TypeNode.NestedTypeProvider(this.GetNestedTypes);
@@ -3332,7 +3333,7 @@ namespace System.Compiler.Metadata{
         result = mod.Types[0];
       if (result != null) return result;
       result = this.GetDummyTypeNode(Identifier.Empty, Identifier.For("<Module>"), mod, null, false);
-      if (mod != null) mod.Types = new TypeNodeList(result);
+      if (mod != null) mod.Types = new List<TypeNode> { result };
       return result;
     }
     internal void GetNamespaces()
@@ -3342,7 +3343,7 @@ namespace System.Compiler.Metadata{
       int n = typeDefs.Length;
       TrivialHashtable nsT = this.namespaceTable = new TrivialHashtable(n);
       TrivialHashtable nsFor = new TrivialHashtable(128);
-      NamespaceList nsL = this.namespaceList = new NamespaceList(n);
+      List<Namespace> nsL = this.namespaceList = new List<Namespace>(n);
       for (int i = 0; i < n; i++){
         TypeDefRow typeDef = typeDefs[i];
         TrivialHashtable ns = (TrivialHashtable)nsT[typeDef.NamespaceKey];
@@ -3571,10 +3572,10 @@ namespace System.Compiler.Metadata{
       TypeNode result = this.ParseTypeSignature(this.tables.GetNewCursor(), ref pinned, ref isTypeArgument);
       if (result == null) result = new Class();
       //Get custom attributes
-      AttributeList attributes = this.GetCustomAttributesFor((i << 5) | 13);
+      List<AttributeNode> attributes = this.GetCustomAttributesFor((i << 5) | 13);
       if (attributes != null && attributes.Count > 0) {
         //Append attributes "inherited" from template to metadata attributes
-        AttributeList templAttributes = result.Attributes;
+        List<AttributeNode> templAttributes = result.Attributes;
         for (int j = 0, n = templAttributes == null ? 0 : templAttributes.Count; j < n; j++) {
           AttributeNode attr = result.Attributes[j];
           if (attr == null) continue;
@@ -3587,7 +3588,7 @@ namespace System.Compiler.Metadata{
         if (attributes[j].Type == SystemTypes.NotNullGenericArgumentsAttribute) {
           Literal l = (Literal)attributes[j].Expressions[0];
           string s = (string)l.Value;
-          TypeNodeList ts = new TypeNodeList(s.Length);
+          List<TypeNode> ts = new List<TypeNode>(s.Length);
           for (int k = 0, m = s.Length; k < m; k++) {
             if (s[k] == '!')
               ts.Add(OptionalModifier.For(ExtendedRuntimeTypes.NonNullType, result.ConsolidatedTemplateArguments[k]));
@@ -3608,7 +3609,7 @@ namespace System.Compiler.Metadata{
       if (!type.IsGeneric && (type.Template == null || !type.IsNotFullySpecialized) &&
       type.NodeType != NodeType.TypeParameter && type.NodeType != NodeType.ClassParameter &&
       type.NodeType != NodeType.InterfaceExpression) {
-        TypeNodeList elementTypes = type.StructuralElementTypes;
+        List<TypeNode> elementTypes = type.StructuralElementTypes;
         for (int i = 0, n = elementTypes == null ? 0 : elementTypes.Count; i < n; i++)
           if (!CanCacheTypeNode(type.StructuralElementTypes[i])) return false;
         return true;
@@ -3643,7 +3644,7 @@ namespace System.Compiler.Metadata{
       return mod;
     }
     private void GetTypeList(Module/*!*/ module) {
-      TypeNodeList types = new TypeNodeList();
+      List<TypeNode> types = new List<TypeNode>();
       TypeDefRow[] typeDefs = this.tables.TypeDefTable;
       for (int i = 0, n = typeDefs.Length; i < n; i++){
         TypeNode t = this.GetTypeFromDef(i+1);
@@ -3652,7 +3653,7 @@ namespace System.Compiler.Metadata{
       module.Types = types;
       AssemblyNode assem = module as AssemblyNode;
       if (assem == null) return;
-      types = new TypeNodeList();
+      types = new List<TypeNode>();
       ExportedTypeRow[] exportedTypes = this.tables.ExportedTypeTable;
       for (int i = 0, n = exportedTypes.Length; i < n; i++){
         ExportedTypeRow etr = exportedTypes[i];
@@ -3721,21 +3722,21 @@ namespace System.Compiler.Metadata{
     }
     private void GetNestedTypes(TypeNode/*!*/ type, object/*!*/ handle) {
       type.nestedTypes = null;
-      TypeNodeList result = new TypeNodeList();
+      List<TypeNode> result = new List<TypeNode>();
 #if !FxCop
-      TypeNodeList savedCurrentTypeParameters = this.currentTypeParameters;
+      List<TypeNode> savedCurrentTypeParameters = this.currentTypeParameters;
       TypeNode savedCurrentType = this.currentType;
 #endif
       try{
         if (type.IsGeneric){
-          if (type.templateParameters == null) type.templateParameters = new TypeNodeList(0);
+          if (type.templateParameters == null) type.templateParameters = new List<TypeNode>(0);
           this.currentTypeParameters = type.ConsolidatedTemplateParameters;
         }
         this.currentType = type;
         TypeNode declaringType = type.DeclaringType;
         while (this.currentTypeParameters == null && declaringType != null){
           if (declaringType.IsGeneric) {
-            if (declaringType.templateParameters == null) declaringType.templateParameters = new TypeNodeList(0);
+            if (declaringType.templateParameters == null) declaringType.templateParameters = new List<TypeNode>(0);
             this.currentTypeParameters = declaringType.ConsolidatedTemplateParameters;
           }
           declaringType = declaringType.DeclaringType;
@@ -3778,7 +3779,7 @@ namespace System.Compiler.Metadata{
 #endif
     }
     private void GetTypeMembers(TypeNode/*!*/ type, object/*!*/ handle) {
-      TypeNodeList savedCurrentTypeParameters = this.currentTypeParameters;
+      List<TypeNode> savedCurrentTypeParameters = this.currentTypeParameters;
       TypeNode savedCurrentType = this.currentType;
       try{
         MetadataReader tables = this.tables;
@@ -3803,19 +3804,19 @@ namespace System.Compiler.Metadata{
         if (type != td.Type) throw new System.ArgumentOutOfRangeException("handle", ExceptionStrings.InvalidTypeTableIndex);
         //Get type members
         if (type.IsGeneric){
-          if (type.templateParameters == null) type.templateParameters = new TypeNodeList(0);
+          if (type.templateParameters == null) type.templateParameters = new List<TypeNode>(0);
           this.currentTypeParameters = type.ConsolidatedTemplateParameters;
         }
         this.currentType = type;
         TypeNode declaringType = type.DeclaringType;
         while (this.currentTypeParameters == null && declaringType != null){
           if (declaringType.IsGeneric){
-            if (declaringType.templateParameters == null) declaringType.templateParameters = new TypeNodeList(0);
+            if (declaringType.templateParameters == null) declaringType.templateParameters = new List<TypeNode>(0);
             this.currentTypeParameters = declaringType.ConsolidatedTemplateParameters;
           }
           declaringType = declaringType.DeclaringType;
         }
-        type.members = new MemberList();
+        type.members = new List<Member>();
         n = nestedClasses.Length;
         for (int i = 0; i < n; i++){
           NestedClassRow ncr = nestedClasses[i];
@@ -3861,10 +3862,10 @@ namespace System.Compiler.Metadata{
           if (mir.Class != typeTableIndex) continue;
           Method implementer = this.GetMethodDefOrRef(mir.MethodBody);
           if (implementer == null) continue;
-          MethodList implementedInterfaceMethods = implementer.ImplementedInterfaceMethods;
+          List<Method> implementedInterfaceMethods = implementer.ImplementedInterfaceMethods;
           if (implementedInterfaceMethods == null)
-            implementedInterfaceMethods = implementer.ImplementedInterfaceMethods = new MethodList();
-          TypeNodeList savedMethodTypeParameters = this.currentMethodTypeParameters;
+            implementedInterfaceMethods = implementer.ImplementedInterfaceMethods = new List<Method>();
+          List<TypeNode> savedMethodTypeParameters = this.currentMethodTypeParameters;
           this.currentMethodTypeParameters = implementer.TemplateParameters;
           implementedInterfaceMethods.Add(this.GetMethodDefOrRef(mir.MethodDeclaration));
           this.currentMethodTypeParameters = savedMethodTypeParameters;
@@ -3876,7 +3877,7 @@ namespace System.Compiler.Metadata{
           if (this.module.MetadataImportErrors == null) this.module.MetadataImportErrors = new ArrayList();
           this.module.MetadataImportErrors.Add(e);
         }
-        type.Members = new MemberList(0);
+        type.Members = new List<Member>(0);
       }
       finally{
         this.currentTypeParameters = savedCurrentTypeParameters;
@@ -3888,7 +3889,7 @@ namespace System.Compiler.Metadata{
     }
     private void GetTypeAttributes(TypeNode/*!*/ type, object/*!*/ handle) {
       Debug.Assert(TypeNode.IsCompleteTemplate(type));
-      TypeNodeList savedCurrentTypeParameters = this.currentTypeParameters;
+      List<TypeNode> savedCurrentTypeParameters = this.currentTypeParameters;
       try{
         MetadataReader tables = this.tables;
         int typeTableIndex = (int)handle;
@@ -3910,7 +3911,7 @@ namespace System.Compiler.Metadata{
           if (this.module.MetadataImportErrors == null) this.module.MetadataImportErrors = new ArrayList();
           this.module.MetadataImportErrors.Add(e);
         }
-        type.Attributes = new AttributeList(0);
+        type.Attributes = new List<AttributeNode>(0);
         this.currentTypeParameters = savedCurrentTypeParameters;
       }
 #else
@@ -3918,7 +3919,7 @@ namespace System.Compiler.Metadata{
 #endif
     }
     private void GetTypeParameterAttributes(TypeNode/*!*/ type, object/*!*/ handle) {
-      TypeNodeList savedCurrentTypeParameters = this.currentTypeParameters;
+      List<TypeNode> savedCurrentTypeParameters = this.currentTypeParameters;
       try {
         MetadataReader tables = this.tables;
         int genericParamIndex = (int)handle;
@@ -3936,16 +3937,16 @@ namespace System.Compiler.Metadata{
           if (this.module.MetadataImportErrors == null) this.module.MetadataImportErrors = new ArrayList();
           this.module.MetadataImportErrors.Add(e);
         }
-        type.Attributes = new AttributeList(0);
+        type.Attributes = new List<AttributeNode>(0);
         this.currentTypeParameters = savedCurrentTypeParameters;
       }
 #else
       }finally{}
 #endif
     }
-    private TypeNodeList/*!*/ ParseTypeList(MemoryCursor/*!*/ sigReader) {
+    private List<TypeNode>/*!*/ ParseTypeList(MemoryCursor/*!*/ sigReader) {
       int n = sigReader.ReadCompressedInt();
-      TypeNodeList result = new TypeNodeList(n);
+      List<TypeNode> result = new List<TypeNode>(n);
       for (int i = 0; i < n; i++){
         TypeNode t = this.ParseTypeSignature(sigReader);
         if (t == null || t == Struct.Dummy){
@@ -4088,7 +4089,7 @@ namespace System.Compiler.Metadata{
           isTypeArgument = true;
           return mTPar;
         case ElementType.GenericTypeInstance:
-          TypeNodeList savedCurrentTypeParameters = this.currentTypeParameters;
+          List<TypeNode> savedCurrentTypeParameters = this.currentTypeParameters;
           TypeNode template = this.ParseTypeSignature(sigReader, ref pinned);
           this.currentTypeParameters = savedCurrentTypeParameters;
           if (template == null) return null;
@@ -4096,14 +4097,14 @@ namespace System.Compiler.Metadata{
             //The template could not be resolved, so we have a dummy type that has not yet been instantiated
             //Now that it is being instantiated we know how many template parameters it has, we can dummy up some template parameters
             template.IsGeneric = true;
-            template.templateParameters = new TypeNodeList();
+            template.templateParameters = new List<TypeNode>();
             for (int i = 0, n = sigReader.Byte(0); i < n; i++)
               template.templateParameters.Add(new TypeParameter());
           }
           if (CoreSystemTypes.Initialized){
             if (this.currentTypeParameters == null || this.currentTypeParameters.Count == 0)
               this.currentTypeParameters = template.ConsolidatedTemplateParameters;
-            TypeNodeList genArgs = this.ParseTypeList(sigReader);
+            List<TypeNode> genArgs = this.ParseTypeList(sigReader);
             if (this.module == null) return null;
             TypeNode genInst = template.GetGenericTemplateInstance(this.module, genArgs);
             this.currentTypeParameters = savedCurrentTypeParameters;
@@ -4144,7 +4145,7 @@ namespace System.Compiler.Metadata{
       int n = sigReader.ReadCompressedInt();
       TypeNode returnType = this.ParseTypeSignature(sigReader);
       if (returnType == null) returnType = CoreSystemTypes.Object;
-      TypeNodeList parameterTypes = new TypeNodeList(n);
+      List<TypeNode> parameterTypes = new List<TypeNode>(n);
       int m = n;
       for (int i = 0; i < n; i++){
         TypeNode t = this.ParseTypeSignature(sigReader);
@@ -4158,25 +4159,25 @@ namespace System.Compiler.Metadata{
       fp.VarArgStart = m;
       return fp;
     }
-    private StatementList ParseMethodBody(Method/*!*/ method, int methodIndex, int RVA) {
-      TypeNodeList savedCurrentTypeParameters = this.currentTypeParameters;
+    private List<Statement> ParseMethodBody(Method/*!*/ method, int methodIndex, int RVA) {
+      List<TypeNode> savedCurrentTypeParameters = this.currentTypeParameters;
       if (method.DeclaringType.Template != null)
         this.currentTypeParameters = method.DeclaringType.ConsolidatedTemplateArguments;
       else
         this.currentTypeParameters = method.DeclaringType.ConsolidatedTemplateParameters;
       BodyParser parser = new BodyParser(this, method, methodIndex, RVA);
-      StatementList result = parser.ParseStatements();
+      List<Statement> result = parser.ParseStatements();
       this.currentTypeParameters = savedCurrentTypeParameters;
       return result;
     }
-    private InstructionList ParseMethodInstructions(Method/*!*/ method, int methodIndex, int RVA) {
-      TypeNodeList savedCurrentTypeParameters = this.currentTypeParameters;
+    private List<Instruction> ParseMethodInstructions(Method/*!*/ method, int methodIndex, int RVA) {
+      List<TypeNode> savedCurrentTypeParameters = this.currentTypeParameters;
       if (method.DeclaringType.Template != null)
         this.currentTypeParameters = method.DeclaringType.ConsolidatedTemplateArguments;
       else
         this.currentTypeParameters = method.DeclaringType.ConsolidatedTemplateParameters;
       InstructionParser parser = new InstructionParser(this, method, methodIndex, RVA);
-      InstructionList result = parser.ParseInstructions();
+      List<Instruction> result = parser.ParseInstructions();
       this.currentTypeParameters = savedCurrentTypeParameters;
       return result;
     }
@@ -4201,7 +4202,7 @@ namespace System.Compiler.Metadata{
     protected Method/*!*/ method;
     protected int methodIndex;
     protected int RVA;
-    protected LocalList/*!*/ locals = new LocalList();
+    protected List<Local>/*!*/ locals = new List<Local>();
 
     internal ILParser(Reader/*!*/ reader, Method/*!*/ method, int methodIndex, int RVA) {
       this.reader = reader;
@@ -4332,7 +4333,7 @@ namespace System.Compiler.Metadata{
     protected Member/*!*/ GetMemberFromToken(object memberInfo = null){
       return this.reader.GetMemberFromToken(this.GetInt32(), memberInfo);
     }
-    protected Member/*!*/ GetMemberFromToken(out TypeNodeList varArgTypes) {
+    protected Member/*!*/ GetMemberFromToken(out List<TypeNode> varArgTypes) {
       return this.reader.GetMemberFromToken(this.GetInt32(), out varArgTypes);
     }
     protected string/*!*/ GetStringFromToken() {
@@ -4368,7 +4369,7 @@ namespace System.Compiler.Metadata{
       else
         n = (dataSize + (n << 8)) / 24;
       if (n < 0) n = 0;
-      this.method.ExceptionHandlers = new ExceptionHandlerList(n);
+      this.method.ExceptionHandlers = new List<ExceptionHandler>(n);
       for (int i = 0; i < n; i++){
         int flags, tryOffset, tryLength, handlerOffset, handlerLength, tokenOrOffset;
         if (smallSection){
@@ -4411,7 +4412,7 @@ namespace System.Compiler.Metadata{
 #endif
     private AssignmentStatement/*!*/ ParseArrayElementAssignment(OpCode opCode) {
       Expression rhvalue = PopOperand();
-      ExpressionList indexers = new ExpressionList(1);
+      List<Expression> indexers = new List<Expression>(1);
       indexers.Add(PopOperand());
       Expression array = PopOperand();
       Indexer indexer = new Indexer(array, indexers);
@@ -4434,7 +4435,7 @@ namespace System.Compiler.Metadata{
       return new AssignmentStatement(indexer, rhvalue);
     }
     private Indexer/*!*/ ParseArrayElementLoad(OpCode opCode, TypeNode elementType){
-      ExpressionList indexers = new ExpressionList(1); indexers.Add(PopOperand());
+      List<Expression> indexers = new List<Expression>(1); indexers.Add(PopOperand());
       Expression array = PopOperand();
       Indexer indexer = new Indexer(array, indexers);
       TypeNode t = elementType;
@@ -4505,7 +4506,7 @@ namespace System.Compiler.Metadata{
       return new Branch(condition, targetBlock, shortOffset, unordered, leavesExceptionBlock);
     }
     private MethodCall/*!*/ ParseCall(NodeType typeOfCall, out bool isStatement) {
-      TypeNodeList varArgTypes;
+      List<TypeNode> varArgTypes;
       Method meth = (Method)this.GetMemberFromToken(out varArgTypes);
       int numVarArgs = varArgTypes == null ? 0 : varArgTypes.Count;
       isStatement = BodyParser.TypeIsVoid(meth.ReturnType);
@@ -4513,7 +4514,7 @@ namespace System.Compiler.Metadata{
       if (typeOfCall == NodeType.Jmp) n = 0;
       else n += numVarArgs;
       Expression[] args = new Expression[n];
-      ExpressionList arguments = new ExpressionList(n);
+      List<Expression> arguments = new List<Expression>(n);
       for (int i = n-1; i >= 0; i--) args[i] = PopOperand();
       for (int i = 0; i < n; i++) arguments.Add(args[i]);
       if (varArgTypes != null) {
@@ -4553,7 +4554,7 @@ namespace System.Compiler.Metadata{
       isStatement = BodyParser.TypeIsVoid(fp.ReturnType);
       int n = fp.ParameterTypes.Count; 
       Expression[] args = new Expression[n+1];
-      ExpressionList arguments = new ExpressionList(n+1);
+      List<Expression> arguments = new List<Expression>(n+1);
       for (int i = n; i >= 0; i--) args[i] = PopOperand();
       for (int i = 0; i <= n; i++) arguments.Add(args[i]);
       Expression thisob = fp.IsStatic ? null : PopOperand();
@@ -4570,11 +4571,11 @@ namespace System.Compiler.Metadata{
       return expr;
     }
     private Construct/*!*/ ParseConstruct() {
-      TypeNodeList varArgTypes;
+      List<TypeNode> varArgTypes;
       Method meth = (Method)this.GetMemberFromToken(out varArgTypes);
       int n = meth.Parameters.Count;
       Expression[] args = new Expression[n];
-      ExpressionList arguments = new ExpressionList(n);
+      List<Expression> arguments = new List<Expression>(n);
       for (int i = n-1; i >= 0; i--) args[i] = PopOperand();
       for (int i = 0; i < n; i++) arguments.Add(args[i]);
       Construct result = new Construct(new MemberBinding(null, meth), arguments);
@@ -4609,18 +4610,18 @@ namespace System.Compiler.Metadata{
     }
     private ConstructArray/*!*/ ParseNewArray() {
       TypeNode type = (TypeNode)this.GetMemberFromToken();
-      ExpressionList sizes = new ExpressionList(1);
+      List<Expression> sizes = new List<Expression>(1);
       sizes.Add(PopOperand());
       ConstructArray result = new ConstructArray(type, sizes, null);
       result.Type = type.GetArrayType(1);
       return result;
     }
 #if !FxCop
-    internal StatementList/*!*/ ParseStatements() {
+    internal List<Statement>/*!*/ ParseStatements() {
       this.ParseHeader();
-      if (this.size == 0) return new StatementList(0);
+      if (this.size == 0) return new List<Statement>(0);
       this.CreateBlocksForBranchTargets();
-      StatementList result = new StatementList();
+      List<Statement> result = new List<Statement>();
       Block currentBlock = null;
       while (this.counter < size){
         if (currentBlock == null){
@@ -4639,7 +4640,7 @@ namespace System.Compiler.Metadata{
 #endif
     private bool ParseStatement(Block/*!*/ block) {
       //parse instructions and put in expression tree until an assignment, void call, branch target, or branch is encountered
-      StatementList statementList = block.Statements;
+      List<Statement> statementList = block.Statements;
       Expression expr = null;
       Statement statement = null;
       bool transferStatement = false;
@@ -4984,7 +4985,7 @@ namespace System.Compiler.Metadata{
     private SwitchInstruction ParseSwitchInstruction(){
       int numTargets = this.GetInt32();
       int offset = this.counter + numTargets*4;
-      BlockList targetList = new BlockList(numTargets);
+      List<Block> targetList = new List<Block>(numTargets);
       for (int i = 0; i < numTargets; i++){
         int targetAddress = this.GetInt32() + offset;
         targetList.Add(Reader.GetOrCreateBlock(this.blockMap, targetAddress));
@@ -5129,7 +5130,7 @@ namespace System.Compiler.Metadata{
     private Block currentBlock;
     private Dictionary<Block, List<TryNode>> tryMap;
     private Dictionary<int, Expression> handlerMap;
-    internal StatementList/*!*/ ParseStatements() {
+    internal List<Statement>/*!*/ ParseStatements() {
       this.tryMap = new Dictionary<Block, List<TryNode>>();
       this.handlerMap = new Dictionary<int, Expression>();
       this.ParseHeader();
@@ -5149,7 +5150,7 @@ namespace System.Compiler.Metadata{
       Reader.GetOrCreateBlock(this.blockMap, this.counter);
       int counter = 0;
       Block block = new Block();
-      block.Statements = new StatementList();
+      block.Statements = new List<Statement>();
       ProcessBlock(block, ref counter, this.size, null);
       return block.Statements;
     }
@@ -5275,7 +5276,7 @@ namespace System.Compiler.Metadata{
       tryList.Remove(outerTry);
       if (tryList.Count > 0) {
         outerTry.Block = new Block();
-        outerTry.Block.Statements = new StatementList();
+        outerTry.Block.Statements = new List<Statement>();
         ProcessTryBlock(outerTry.Block, currentBlock, ref counter);
       }
       else {
@@ -5400,8 +5401,8 @@ namespace System.Compiler.Metadata{
     }
     private Instruction AddInstruction(OpCode opCode, int offset, object value){
       Instruction instruction = new Instruction(opCode, offset, value);
-      InstructionList instructions = (InstructionList)this.ehMap[offset+1];
-      if (instructions == null) this.ehMap[offset+1] = instructions = new InstructionList(2);
+      List<Instruction> instructions = (List<Instruction>)this.ehMap[offset+1];
+      if (instructions == null) this.ehMap[offset+1] = instructions = new List<Instruction>(2);
       instructions.Add(instruction);
 #if !ROTOR
       if (this.method.contextForOffset != null){
@@ -5411,9 +5412,9 @@ namespace System.Compiler.Metadata{
 #endif
       return instruction;
     }
-    private Int32List ParseSwitchInstruction(){
+    private List<int> ParseSwitchInstruction(){
       int numTargets = this.GetInt32();
-      Int32List result = new Int32List(numTargets);
+      List<int> result = new List<int>(numTargets);
       int offset = this.counter + numTargets*4;
       for (int i = 0; i < numTargets; i++){
         int targetAddress = this.GetInt32() + offset;
@@ -5421,13 +5422,13 @@ namespace System.Compiler.Metadata{
       }
       return result;
     }
-    internal InstructionList ParseInstructions(){
+    internal List<Instruction> ParseInstructions(){
       this.ParseHeader();
-      if (this.size == 0) return new InstructionList(0);
-      InstructionList result = new InstructionList();
+      if (this.size == 0) return new List<Instruction>(0);
+      List<Instruction> result = new List<Instruction>();
       result.Add(new Instruction(OpCode._Locals, 0, this.locals));
       while (this.counter <= size){
-        InstructionList instructions = (InstructionList)this.ehMap[this.counter+1];
+        List<Instruction> instructions = (List<Instruction>)this.ehMap[this.counter+1];
         if (instructions != null){
           for (int i = 0; i < instructions.Count; i++)
             result.Add(instructions[i]);

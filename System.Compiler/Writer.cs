@@ -11,6 +11,8 @@ using System.IO;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Collections.Generic;
+using System.Linq;
 #if !ROTOR
 using System.Security.Cryptography;
 #endif
@@ -235,59 +237,59 @@ namespace System.Compiler{
     private Hashtable/*!*/ blobHeapIndex = new Hashtable(new ByteArrayHasher(), new ByteArrayComparer());
 #endif
     private Hashtable/*!*/ blobHeapStringIndex = new Hashtable();
-    private NodeList/*!*/ nodesWithCustomAttributes = new NodeList();
+    private List<Node>/*!*/ nodesWithCustomAttributes = new List<Node>();
     private int customAttributeCount = 0;
-    private NodeList/*!*/ nodesWithSecurityAttributes = new NodeList();
+    private List<Node>/*!*/ nodesWithSecurityAttributes = new List<Node>();
     private int securityAttributeCount = 0;
-    private NodeList/*!*/ constantTableEntries = new NodeList();
+    private List<Node>/*!*/ constantTableEntries = new List<Node>();
     private TrivialHashtable/*!*/ assemblyRefIndex = new TrivialHashtable();
-    private AssemblyReferenceList/*!*/ assemblyRefEntries = new AssemblyReferenceList();
-    private TypeNodeList/*!*/ classLayoutEntries = new TypeNodeList();
+    private List<AssemblyReference>/*!*/ assemblyRefEntries = new List<AssemblyReference>();
+    private List<TypeNode>/*!*/ classLayoutEntries = new List<TypeNode>();
     private TrivialHashtable/*!*/ documentMap = new TrivialHashtable();
     private TrivialHashtable/*!*/ eventIndex = new TrivialHashtable();
-    private EventList/*!*/ eventEntries = new EventList();
+    private List<Event>/*!*/ eventEntries = new List<Event>();
     private TrivialHashtable/*!*/ eventMapIndex = new TrivialHashtable();
-    private EventList/*!*/ eventMapEntries = new EventList();
+    private List<Event>/*!*/ eventMapEntries = new List<Event>();
     private TrivialHashtable/*!*/ exceptionBlock = new TrivialHashtable();
     private TrivialHashtable/*!*/ fieldIndex = new TrivialHashtable();
-    private FieldList/*!*/ fieldEntries = new FieldList();
-    private FieldList/*!*/ fieldLayoutEntries = new FieldList();
-    private FieldList/*!*/ fieldRvaEntries = new FieldList();
+    private List<Field>/*!*/ fieldEntries = new List<Field>();
+    private List<Field>/*!*/ fieldLayoutEntries = new List<Field>();
+    private List<Field>/*!*/ fieldRvaEntries = new List<Field>();
     private Hashtable/*!*/ fileTableIndex = new Hashtable();
-    private ModuleList/*!*/ fileTableEntries = new ModuleList();
+    private List<Module>/*!*/ fileTableEntries = new List<Module>();
     private Hashtable/*!*/ genericParamIndex = new Hashtable();
-    private MemberList/*!*/ genericParamEntries = new MemberList();
-    private TypeNodeList/*!*/ genericParameters = new TypeNodeList();
-    private TypeNodeList/*!*/ genericParamConstraintEntries = new TypeNodeList();
+    private List<Member>/*!*/ genericParamEntries = new List<Member>();
+    private List<TypeNode>/*!*/ genericParameters = new List<TypeNode>();
+    private List<TypeNode>/*!*/ genericParamConstraintEntries = new List<TypeNode>();
     private ArrayList/*!*/ guidEntries = new ArrayList();
     private Hashtable/*!*/ guidIndex = new Hashtable();
-    private MethodList/*!*/ implMapEntries = new MethodList();
-    private TypeNodeList/*!*/ interfaceEntries = new TypeNodeList();
-    private NodeList/*!*/ marshalEntries = new NodeList();
+    private List<Method>/*!*/ implMapEntries = new List<Method>();
+    private List<TypeNode>/*!*/ interfaceEntries = new List<TypeNode>();
+    private List<Node>/*!*/ marshalEntries = new List<Node>();
     private TrivialHashtable<int>/*!*/ memberRefIndex = new TrivialHashtable<int>();
-    private MemberList/*!*/ memberRefEntries = new MemberList();
+    private List<Member>/*!*/ memberRefEntries = new List<Member>();
     private TrivialHashtable/*!*/ methodBodiesHeapIndex = new TrivialHashtable();
     private BinaryWriter/*!*/ methodBodiesHeap = new BinaryWriter(new MemoryStream());
     private BinaryWriter/*!*/ methodBodyHeap;
-    private MethodList/*!*/ methodEntries = new MethodList();
+    private List<Method>/*!*/ methodEntries = new List<Method>();
     private TrivialHashtable<int>/*!*/ methodIndex = new TrivialHashtable<int>();
-    private MethodList/*!*/ methodImplEntries = new MethodList();
+    private List<Method>/*!*/ methodImplEntries = new List<Method>();
     private MethodInfo/*!*/ methodInfo;
 #if !MinimalReader && !CodeContracts
     private Method currentMethod;
 #endif
-    private MemberList/*!*/ methodSemanticsEntries = new MemberList();
-    private MethodList/*!*/ methodSpecEntries = new MethodList();
+    private List<Member>/*!*/ methodSemanticsEntries = new List<Member>();
+    private List<Method>/*!*/ methodSpecEntries = new List<Method>();
     private Hashtable/*!*/ methodSpecIndex = new Hashtable();
-    private ModuleReferenceList/*!*/ moduleRefEntries = new ModuleReferenceList();
+    private List<ModuleReference>/*!*/ moduleRefEntries = new List<ModuleReference>();
     private Hashtable/*!*/ moduleRefIndex = new Hashtable();
-    private TypeNodeList/*!*/ nestedClassEntries = new TypeNodeList();
+    private List<TypeNode>/*!*/ nestedClassEntries = new List<TypeNode>();
     private TrivialHashtable<int>/*!*/ paramIndex = new TrivialHashtable<int>();
-    private ParameterList/*!*/ paramEntries = new ParameterList();
+    private List<Parameter>/*!*/ paramEntries = new List<Parameter>();
     private TrivialHashtable/*!*/ propertyIndex = new TrivialHashtable();
-    private PropertyList/*!*/ propertyEntries = new PropertyList();
+    private List<Property>/*!*/ propertyEntries = new List<Property>();
     private TrivialHashtable/*!*/ propertyMapIndex = new TrivialHashtable();
-    private PropertyList/*!*/ propertyMapEntries = new PropertyList();
+    private List<Property>/*!*/ propertyMapEntries = new List<Property>();
     private BinaryWriter/*!*/ resourceDataHeap = new BinaryWriter(new MemoryStream());
     private BinaryWriter/*!*/ sdataHeap = new BinaryWriter(new MemoryStream());
 #if !ROTOR
@@ -301,12 +303,12 @@ namespace System.Compiler{
     private Hashtable/*!*/ stringHeapIndex = new Hashtable();
     private BinaryWriter/*!*/ tlsHeap = new BinaryWriter(new MemoryStream());
     private TrivialHashtable/*!*/ typeDefIndex = new TrivialHashtable();
-    private TypeNodeList/*!*/ typeDefEntries = new TypeNodeList();
+    private List<TypeNode>/*!*/ typeDefEntries = new List<TypeNode>();
     private TrivialHashtable/*!*/ typeRefIndex = new TrivialHashtable();
-    private TypeNodeList/*!*/ typeRefEntries = new TypeNodeList();
+    private List<TypeNode>/*!*/ typeRefEntries = new List<TypeNode>();
     private TrivialHashtable/*!*/ typeSpecIndex = new TrivialHashtable();
     private TrivialHashtable/*!*/ structuralTypeSpecIndexFor = new TrivialHashtable();
-    private TypeNodeList/*!*/ typeSpecEntries = new TypeNodeList();
+    private List<TypeNode>/*!*/ typeSpecEntries = new List<TypeNode>();
     private TrivialHashtable/*!*/ typeParameterNumber = new TrivialHashtable();
     private BinaryWriter/*!*/ userStringHeap = new BinaryWriter(new MemoryStream(), System.Text.Encoding.Unicode);
     private Hashtable/*!*/ userStringHeapIndex = new Hashtable();
@@ -607,7 +609,7 @@ namespace System.Compiler{
       }
       return (int)index;
     }
-    int GetBlobIndex(ExpressionList expressions, ParameterList parameters){
+    int GetBlobIndex(List<Expression> expressions, List<Parameter> parameters){
       MemoryStream sig = new MemoryStream();
       BinaryWriter signature = new BinaryWriter(sig);
       this.WriteCustomAttributeSignature(expressions, parameters, false, signature);
@@ -618,7 +620,7 @@ namespace System.Compiler{
       this.blobHeap.BaseStream.Write(sigBytes, 0, length);
       return index;
     }
-    void WriteCustomAttributeSignature(ExpressionList expressions, ParameterList parameters, bool onlyWriteNamedArguments, BinaryWriter signature) {
+    void WriteCustomAttributeSignature(List<Expression> expressions, List<Parameter> parameters, bool onlyWriteNamedArguments, BinaryWriter signature) {
       int n = parameters == null ? 0 : parameters.Count;
       int m = expressions == null ? 0 : expressions.Count;
       Debug.Assert(m >= n);
@@ -799,7 +801,7 @@ namespace System.Compiler{
         this.WriteMethodSignature(signature, method);
       return this.GetBlobIndex(sig.ToArray());
     }
-    int GetBlobIndex(AttributeList/*!*/ securityAttributes) {
+    int GetBlobIndex(List<AttributeNode>/*!*/ securityAttributes) {
       MemoryStream sig = new MemoryStream();
       BinaryWriter signature = new BinaryWriter(sig);
       signature.Write((byte)'.');
@@ -1026,15 +1028,15 @@ namespace System.Compiler{
     }
     class VarargMethodCallSignature : FunctionPointer{
       internal Method method;
-      internal VarargMethodCallSignature(Method/*!*/ method, TypeNodeList/*!*/ parameterTypes)
+      internal VarargMethodCallSignature(Method/*!*/ method, List<TypeNode>/*!*/ parameterTypes)
         : base(parameterTypes, method.ReturnType, method.Name){
         this.method = method;
         this.DeclaringType = method.DeclaringType;
       }
     }
-    int GetMemberRefToken(Method/*!*/ m, ExpressionList arguments) {
+    int GetMemberRefToken(Method/*!*/ m, List<Expression> arguments) {
       int numArgs = arguments == null ? 0 : arguments.Count;
-      TypeNodeList parTypes = new TypeNodeList(numArgs);
+      List<TypeNode> parTypes = new List<TypeNode>(numArgs);
       int varArgStart = m.Parameters.Count;
       for (int i = 0; i < varArgStart; i++) 
         parTypes.Add(m.Parameters[i].Type);
@@ -1120,7 +1122,7 @@ namespace System.Compiler{
         Method templ = m.Template;
         if (templ != null){
           while (templ.Template != null) templ = templ.Template;
-          TypeNodeList templParams = templ.TemplateParameters;
+          List<TypeNode> templParams = templ.TemplateParameters;
           if (templParams != null) {
             for (int i = 0, n = templParams.Count; i < n; i++) {
               TypeNode templParam = templParams[i];
@@ -1409,12 +1411,12 @@ namespace System.Compiler{
         if (type.Template != null) {
           if (type.Template.DeclaringModule != this.module)
             this.GetTypeRefIndex(type.Template);
-          TypeNodeList templArgs = type.ConsolidatedTemplateArguments;
+          List<TypeNode> templArgs = type.ConsolidatedTemplateArguments;
           for (int i = 0, n = templArgs == null ? 0 : templArgs.Count; i < n; i++) {
             this.VisitReferencedType(templArgs[i]);
           }
         }else{
-          TypeNodeList telems = type.StructuralElementTypes;
+          List<TypeNode> telems = type.StructuralElementTypes;
           for (int i = 0, n = telems == null ? 0 : telems.Count; i < n; i++)
             this.VisitReferencedType(telems[i]);
         }
@@ -1429,8 +1431,8 @@ namespace System.Compiler{
       TypeNode template = field.DeclaringType;
       if (template == null) { Debug.Assert(false); return field; }
       while (template.Template != null) template = template.Template;
-      MemberList specializedMembers = field.DeclaringType.Members;
-      MemberList unspecializedMembers = template.Members;
+      List<Member> specializedMembers = field.DeclaringType.Members;
+      List<Member> unspecializedMembers = template.Members;
       for (int i = 0, n = specializedMembers.Count; i < n; i++){
         if (specializedMembers[i] != field) continue;
         unspecializedField = (Field)unspecializedMembers[i];
@@ -1450,8 +1452,8 @@ namespace System.Compiler{
       TypeNode template = method.DeclaringType;
       if (template == null){Debug.Assert(false); return method;}
       while (template.Template != null) template = template.Template;
-      MemberList specializedMembers = method.DeclaringType.Members;
-      MemberList unspecializedMembers = template.Members;
+      List<Member> specializedMembers = method.DeclaringType.Members;
+      List<Member> unspecializedMembers = template.Members;
       for (int i = 0, n = specializedMembers.Count; i < n; i++){
         if (specializedMembers[i] != method) continue;
         unspecializedMethod = unspecializedMembers[i] as Method;
@@ -1507,7 +1509,7 @@ namespace System.Compiler{
       this.writer.assemblyTable = assemblyTable;
     }
     void PopulateAssemblyRefTable(){
-      AssemblyReferenceList arList = this.module.AssemblyReferences = this.assemblyRefEntries;
+      List<AssemblyReference> arList = this.module.AssemblyReferences = this.assemblyRefEntries;
       if (arList == null) return;
       int n = arList.Count;
       AssemblyRefRow[] arRows = this.writer.assemblyRefTable = new AssemblyRefRow[n];
@@ -1595,7 +1597,7 @@ namespace System.Compiler{
       int k = 0;
       int prevCodedIndex = 0;
       for (int i = 0, n = this.nodesWithCustomAttributes.Count; i < n; i++){
-        AttributeList attrs = null;
+        List<AttributeNode> attrs = null;
         Node node = this.nodesWithCustomAttributes[i];
         int codedIndex = 0;
         switch(node.NodeType){
@@ -1686,7 +1688,7 @@ namespace System.Compiler{
       int k = 0;
       int prevCodedIndex = 0;
       for (int i = 0, n = this.nodesWithSecurityAttributes.Count; i < n; i++){
-        SecurityAttributeList attrs = null;
+        List<SecurityAttribute> attrs = null;
         Node node = this.nodesWithSecurityAttributes[i];
         int codedIndex = 0;
         switch(node.NodeType){
@@ -1765,7 +1767,7 @@ namespace System.Compiler{
     }
     void PopulateExportedTypeTable(){
       if (this.assembly == null) return;
-      TypeNodeList exportedTypes = this.assembly.ExportedTypes;
+      List<TypeNode> exportedTypes = this.assembly.ExportedTypes;
       int n = exportedTypes == null ? 0 : exportedTypes.Count;
       if (n == 0) return;
       ExportedTypeRow[] ett = this.writer.exportedTypeTable = new ExportedTypeRow[n];
@@ -2038,7 +2040,7 @@ namespace System.Compiler{
       //this.interfaceEntries = null;
     }
     void PopulateManifestResourceTable(){
-      ResourceList resources = this.module.Resources;
+      List<Resource> resources = this.module.Resources;
       int n = resources == null ? 0 : resources.Count;
       if (n == 0) return;
       ManifestResourceRow[] mresources = this.writer.manifestResourceTable = new ManifestResourceRow[n];
@@ -2141,7 +2143,7 @@ namespace System.Compiler{
         if (m.ReturnTypeMarshallingInformation != null || (m.ReturnAttributes != null && m.ReturnAttributes.Count > 0))
           mr[i].ParamList = this.paramIndex[m.UniqueKey];
         else{
-          ParameterList pars = m.Parameters;
+          List<Parameter> pars = m.Parameters;
           if (pars != null && pars.Count > 0){
             Debug.Assert(pars[0] != null && pars[0].DeclaringMethod == m);
             mr[i].ParamList = this.GetParamIndex(pars[0]);
@@ -2373,7 +2375,7 @@ namespace System.Compiler{
 #endif
         tdr[i].Namespace = t.Namespace == null ? 0 : this.GetStringIndex(t.Namespace == null ? "" : t.Namespace.ToString());
         tdr[i].Extends = this.GetTypeDefOrRefOrSpecEncoded(t.BaseType);
-        MemberList members = t.Members;
+        List<Member> members = t.Members;
         int m = members.Count;
         for (int j = 0; j < m; j++){
           Member mem = members[j];
@@ -2681,7 +2683,7 @@ namespace System.Compiler{
           return;
       }
     }
-    void VisitAttributeList(AttributeList attrs, Node/*!*/ node) {
+    void VisitAttributeList(List<AttributeNode> attrs, Node/*!*/ node) {
       if (attrs == null) return;
       int n = attrs.Count;
       if (n == 0) return;
@@ -2697,7 +2699,7 @@ namespace System.Compiler{
       m = this.nodesWithCustomAttributes.Count;
       this.nodesWithCustomAttributes.Add(node);
       int i = 0; //after the for loop i will be position where the new node should be in sorted list
-      NodeList nodes = this.nodesWithCustomAttributes;
+      List<Node> nodes = this.nodesWithCustomAttributes;
       for (i = m; i > 0; i--){
         Node other = nodes[i-1];
         int oci = this.GetCustomAttributeParentCodedIndex(other);
@@ -3013,16 +3015,16 @@ namespace System.Compiler{
       this.methodBodyHeap.BaseStream.Position = currentAddress;
       int savedStackHeight = this.stackHeight;
       if (this.exceptionBlock[block.UniqueKey] != null) this.stackHeight = 1;
-      StatementList statements = block.Statements;
+      List<Statement> statements = block.Statements;
       if (statements == null) return;
 #if !ROTOR
       if (this.symWriter != null && block.HasLocals){
-        LocalList savedDebugLocals = mInfo.debugLocals;
-        Int32List savedSignatureLengths = mInfo.signatureLengths;
-        Int32List savedSignatureOffsets = mInfo.signatureOffsets;
-        mInfo.debugLocals = new LocalList();
-        mInfo.signatureLengths = new Int32List();
-        mInfo.signatureOffsets = new Int32List();
+        List<Local> savedDebugLocals = mInfo.debugLocals;
+        List<int> savedSignatureLengths = mInfo.signatureLengths;
+        List<int> savedSignatureOffsets = mInfo.signatureOffsets;
+        mInfo.debugLocals = new List<Local>();
+        mInfo.signatureLengths = new List<int>();
+        mInfo.signatureOffsets = new List<int>();
         this.symWriter.OpenScope((uint)currentAddress);
         for (int i = 0, n = statements.Count; i < n; i++)
           this.Visit(statements[i]);
@@ -3200,7 +3202,7 @@ namespace System.Compiler{
       MemberBinding mb = (MemberBinding)call.Callee;
       TypeNode constraint = call.Constraint;
       this.Visit(mb.TargetObject);
-      ExpressionList arguments = call.Operands;
+      List<Expression> arguments = call.Operands;
       int pops = 0;
       if (arguments != null){
         this.VisitExpressionList(arguments);
@@ -3258,7 +3260,7 @@ namespace System.Compiler{
     }
     void VisitConstruct(Construct/*!*/ cons) {
       int pops = -1;
-      ExpressionList operands = cons.Operands;
+      List<Expression> operands = cons.Operands;
       if (operands != null){
         this.VisitExpressionList(cons.Operands);
         pops = operands.Count - 1;
@@ -3351,7 +3353,7 @@ namespace System.Compiler{
           return;
       }
     }
-    void VisitExpressionList(ExpressionList expressions){
+    void VisitExpressionList(List<Expression> expressions){
       if (expressions == null) return;
       for (int i = 0, n = expressions.Count; i < n; i++)
         this.Visit(expressions[i]);
@@ -3382,7 +3384,7 @@ namespace System.Compiler{
         fixup = fixup.nextFixUp;
       }
     }
-    void VisitGenericParameterList(Member/*!*/ member, TypeNodeList/*!*/ parameters) {
+    void VisitGenericParameterList(Member/*!*/ member, List<TypeNode>/*!*/ parameters) {
       if (member == null || parameters == null || !this.UseGenerics) return;
       int sign = member is Method ? -1 : 1;
       for (int i = 0, n = parameters.Count; i < n; i++){
@@ -3441,7 +3443,7 @@ namespace System.Compiler{
       if (this.UseGenerics && Interface.Template != null && Interface.Template.IsGeneric) return;
       this.VisitAttributeList(Interface.Attributes, Interface);
       this.VisitSecurityAttributeList(Interface.SecurityAttributes, Interface);
-      InterfaceList interfaces = Interface.Interfaces;
+      List<Interface> interfaces = Interface.Interfaces;
       for (int i = 0, n = interfaces == null ? 0 : interfaces.Count; i < n; i++) {
         this.GetTypeDefOrRefOrSpecEncoded(interfaces[i]);
         if (interfaces[i] != null) this.interfaceEntries.Add(Interface);
@@ -3610,7 +3612,7 @@ namespace System.Compiler{
         if (method.Body.Statements != null && method.Body.Statements.Count > 0)
           this.VisitMethodBody(method);
       }
-      MethodList implementedInterfaceMethods = method.ImplementedInterfaceMethods;
+      List<Method> implementedInterfaceMethods = method.ImplementedInterfaceMethods;
       for (int i = 0, n = implementedInterfaceMethods == null ? 0 : implementedInterfaceMethods.Count; i < n; i++){
         Method im = implementedInterfaceMethods[i];
         if (im == null) continue;
@@ -3635,11 +3637,11 @@ namespace System.Compiler{
 #if !ROTOR
       if (this.symWriter != null){
         methodDefToken = (uint)this.GetMethodDefToken(method);
-        this.methodInfo.debugLocals = new LocalList();
-        this.methodInfo.signatureLengths = new Int32List();
-        this.methodInfo.signatureOffsets = new Int32List();
-        this.methodInfo.statementNodes = new NodeList();
-        this.methodInfo.statementOffsets = new Int32List();
+        this.methodInfo.debugLocals = new List<Local>();
+        this.methodInfo.signatureLengths = new List<int>();
+        this.methodInfo.signatureOffsets = new List<int>();
+        this.methodInfo.statementNodes = new List<Node>();
+        this.methodInfo.statementOffsets = new List<int>();
         this.symWriter.OpenMethod(methodDefToken);
         this.symWriter.OpenScope(0u);
 #if !MinimalReader && !CodeContracts
@@ -3790,8 +3792,8 @@ namespace System.Compiler{
 #if !ROTOR
       if (this.symWriter != null){
         MethodInfo mInfo = this.methodInfo;
-        NodeList statementNodes = mInfo.statementNodes;
-        Int32List statementOffsets = mInfo.statementOffsets;
+        List<Node> statementNodes = mInfo.statementNodes;
+        List<int> statementOffsets = mInfo.statementOffsets;
         if (statementNodes.Count == 0)
         {
           // hack to make sure there is at least one sequence point
@@ -3840,7 +3842,7 @@ namespace System.Compiler{
     }
 
 #if !ROTOR
-    private void DefineLocalVariables(int startAddress, LocalList locals) {
+    private void DefineLocalVariables(int startAddress, List<Local> locals) {
       MethodInfo mInfo = this.methodInfo;
       for(int i = 0, n = locals.Count; i < n; i++) {
         Local loc = locals[i];
@@ -3881,7 +3883,7 @@ namespace System.Compiler{
 #endif
     }
 #if !ROTOR
-    void DefineSequencePoints(NodeList/*!*/ statementNodes, Int32List/*!*/ statementOffsets, int start, int count, ISymUnmanagedDocumentWriter doc) 
+    void DefineSequencePoints(List<Node>/*!*/ statementNodes, List<int>/*!*/ statementOffsets, int start, int count, ISymUnmanagedDocumentWriter doc) 
       //^ requires this.symWriter != null;
     {
       if (count == 0) return;
@@ -3911,7 +3913,7 @@ namespace System.Compiler{
         this.VisitAttributeList(m.Attributes, m);
         this.VisitSecurityAttributeList(this.assembly.SecurityAttributes, this.assembly);
       }
-      TypeNodeList allTypes = module.Types.Clone(); 
+      List<TypeNode> allTypes = module.Types.ToList(); 
       for (int k = 0; k < allTypes.Count; ){
         int typeCount = module.Types.Count;
         for (int i = k, n = k, m = allTypes.Count; i < (n = allTypes.Count);){
@@ -3924,7 +3926,7 @@ namespace System.Compiler{
             }
             this.GetTypeDefIndex(t);
             if (i >= m) this.nestedClassEntries.Add(t);
-            MemberList members = t.Members;
+            List<Member> members = t.Members;
             if (members != null) {
               for (int j = 0, numMembers = members.Count; j < numMembers; j++) {
                 TypeNode nt = members[j] as TypeNode;
@@ -3940,7 +3942,7 @@ namespace System.Compiler{
             allTypes[i] = null;
             continue;
           }
-          MemberList mems = t.Members;
+          List<Member> mems = t.Members;
           if (t is EnumNode){ //Work around JIT bug in Beta2
             for (int jj = 0, mm = mems.Count; jj < mm; jj++) {
               Field f = mems[jj] as Field;
@@ -3992,8 +3994,8 @@ namespace System.Compiler{
       public override Method VisitMethod(Method method) {
         if (method == null) return null;
         if (method.Template == null || method.Template.IsGeneric) return method;
-        TypeNodeList templateParameters = null;
-        TypeNodeList templateArguments = null;
+        List<TypeNode> templateParameters = null;
+        List<TypeNode> templateArguments = null;
         if (method.TemplateArguments != null && method.TemplateArguments.Count > 0){
           templateParameters = method.Template.TemplateParameters;
           templateArguments = method.TemplateArguments;
@@ -4047,7 +4049,7 @@ namespace System.Compiler{
           specializer.VisitTypeNode(closureClone);
           if (method.TemplateArguments != null && method.TemplateArguments.Count > 0)
             closureClone.Name = Identifier.For(closureClone.Name.ToString()+closureClone.UniqueKey);
-          MemberList dtMembers = method.DeclaringType.Members;
+          List<Member> dtMembers = method.DeclaringType.Members;
           for (int i = 0, nmems = dtMembers == null ? 0 : dtMembers.Count; i < nmems; i++){
             ClosureClass closureRef = dtMembers[i] as ClosureClass;
             if (closureRef != null && closureRef.Name.UniqueIdKey == closureClone.Name.UniqueIdKey){
@@ -4083,7 +4085,7 @@ namespace System.Compiler{
     void ForceTemplateTypeMethodBodiesToGetSpecialized(Module/*!*/ module) {
       MethodSpecializer visitor = new MethodSpecializer(module);
       if (module == null) return;
-      TypeNodeList types = module.Types;
+      List<TypeNode> types = module.Types;
       if (types == null) return;
       for (int i = 0; i < types.Count; i++)
         this.ForceTemplateTypeMethodBodiesToGetSpecialized(types[i], visitor);
@@ -4093,7 +4095,7 @@ namespace System.Compiler{
       if (type.IsNotFullySpecialized || type.IsGeneric) return;
       bool savedNewTemplateInstanceIsRecursive = type.NewTemplateInstanceIsRecursive;
       type.NewTemplateInstanceIsRecursive = type.IsNotFullySpecialized;
-      MemberList members = type.Members;
+      List<Member> members = type.Members;
       if (members == null) return;
       for (int j = 0; j < members.Count; j++){
         Member mem = members[j];
@@ -4153,7 +4155,7 @@ namespace System.Compiler{
     void VisitReferencedType(TypeNode type) {
       if (type == null) return;
       if (type.IsGeneric && type.Template == null){
-        TypeNodeList templParams = type.ConsolidatedTemplateParameters;
+        List<TypeNode> templParams = type.ConsolidatedTemplateParameters;
         for (int i = 0, n = templParams == null ? 0 : templParams.Count; i < n; i++)
           this.typeParameterNumber[templParams[i].UniqueKey] = i+1;
       }
@@ -4202,7 +4204,7 @@ namespace System.Compiler{
       }
       this.methodBodyHeap.Write((byte)0x2a);
     }
-    void VisitSecurityAttributeList(SecurityAttributeList attrs, Node/*!*/ node) {
+    void VisitSecurityAttributeList(List<SecurityAttribute> attrs, Node/*!*/ node) {
       if (attrs == null) return;
       int n = attrs.Count;
       if (n == 0) return;
@@ -4218,7 +4220,7 @@ namespace System.Compiler{
       m = this.nodesWithSecurityAttributes.Count;
       this.nodesWithSecurityAttributes.Add(node);
       int i = 0; //after the for loop i will be position where the new node should be in sorted list
-      NodeList nodes = this.nodesWithSecurityAttributes;
+      List<Node> nodes = this.nodesWithSecurityAttributes;
       for (i = m; i > 0; i--){
         Node other = nodes[i-1];
         int oci = this.GetSecurityAttributeParentCodedIndex(other);
@@ -4241,7 +4243,7 @@ namespace System.Compiler{
       this.VisitAttributeList(Struct.Attributes, Struct);
       this.VisitSecurityAttributeList(Struct.SecurityAttributes, Struct);
       this.VisitReferencedType(CoreSystemTypes.ValueType);
-      InterfaceList interfaces = Struct.Interfaces;
+      List<Interface> interfaces = Struct.Interfaces;
       for (int i = 0, n = interfaces == null ? 0 : interfaces.Count; i < n; i++) {
         this.GetTypeDefOrRefOrSpecEncoded(interfaces[i]);
         if (interfaces[i] != null) this.interfaceEntries.Add(Struct);
@@ -4257,7 +4259,7 @@ namespace System.Compiler{
     void VisitSwitchInstruction(SwitchInstruction/*!*/ switchInstruction) {
       this.Visit(switchInstruction.Expression);
       this.stackHeight--;
-      BlockList targets = switchInstruction.Targets;
+      List<Block> targets = switchInstruction.Targets;
       int n = targets != null ? targets.Count : 0;
       int addressOfNextInstruction = ((int)this.methodBodyHeap.BaseStream.Position) + 5 + 4*n;
       this.methodBodyHeap.Write((byte)0x45);
@@ -4517,7 +4519,7 @@ namespace System.Compiler{
       }
       Debug.Assert(false, "Unexpected type in custom attribute");
     }
-    static bool AttributesContains(AttributeList al, TypeNode/*!*/ a) {
+    static bool AttributesContains(List<AttributeNode> al, TypeNode/*!*/ a) {
       if (al == null) return false;
       for (int i = 0, n = al.Count; i < n; i++){
         if (al[i] != null && al[i].Type == a)
@@ -4529,7 +4531,7 @@ namespace System.Compiler{
       if (this.UseGenerics){
         if (method.Template != null && method.Template.IsGeneric){
           //Signature is being used in MethodDef table
-          TypeNodeList types = method.TemplateArguments;
+          List<TypeNode> types = method.TemplateArguments;
           int m = types == null ? 0 : types.Count;
           target.Write((byte)(method.CallingConvention|CallingConventionFlags.Generic));
           Ir2md.WriteCompressedInt(target, m);
@@ -4538,7 +4540,7 @@ namespace System.Compiler{
           this.WriteMethodSignature(target, unspecializedMethod);
           return;
         }else if (method.IsGeneric){
-          TypeNodeList types = method.TemplateParameters;
+          List<TypeNode> types = method.TemplateParameters;
           int m = types == null ? 0 : types.Count;
           target.Write((byte)(method.CallingConvention|CallingConventionFlags.Generic));
           Ir2md.WriteCompressedInt(target, m);
@@ -4546,7 +4548,7 @@ namespace System.Compiler{
           target.Write((byte)method.CallingConvention);
       }else
         target.Write((byte)method.CallingConvention);
-      ParameterList pars = method.Parameters;
+      List<Parameter> pars = method.Parameters;
       int n = pars == null ? 0 : pars.Count;
       Ir2md.WriteCompressedInt(target, n);
 
@@ -4578,7 +4580,7 @@ namespace System.Compiler{
     {
       Debug.Assert(this.UseGenerics && method.Template != null && method.Template.IsGeneric);
       target.Write((byte)0x0a);
-      TypeNodeList types = method.TemplateArguments;
+      List<TypeNode> types = method.TemplateArguments;
       int m = types == null ? 0 : types.Count;
       Ir2md.WriteCompressedInt(target, m);
       for (int i = 0; i < m; i++) {
@@ -4588,7 +4590,7 @@ namespace System.Compiler{
     }
     void WriteMethodSignature(BinaryWriter/*!*/ target, FunctionPointer/*!*/ fp) {
       target.Write((byte)fp.CallingConvention);
-      TypeNodeList parTypes = fp.ParameterTypes;
+      List<TypeNode> parTypes = fp.ParameterTypes;
       int n = parTypes == null ? 0 : parTypes.Count;
       Ir2md.WriteCompressedInt(target, n);
       if (fp.ReturnType != null)
@@ -4604,7 +4606,7 @@ namespace System.Compiler{
       byte propHeader = (byte)0x8;
       if (!prop.IsStatic) propHeader |= (byte)0x20; //bizarre redundant way to indicate that property accessors are instance methods
       target.Write(propHeader);
-      ParameterList pars = prop.Parameters;
+      List<Parameter> pars = prop.Parameters;
       int n = pars == null ? 0 : pars.Count;
       Ir2md.WriteCompressedInt(target, n);
       if (prop.Type != null) this.WriteTypeSignature(target, prop.Type);
@@ -4733,7 +4735,7 @@ namespace System.Compiler{
           TypeNode template = t.Template;
           while (template.Template != null) template = template.Template;
           this.WriteTypeSignature(target, template);
-          TypeNodeList templArgs = t.ConsolidatedTemplateArguments;
+          List<TypeNode> templArgs = t.ConsolidatedTemplateArguments;
           int n = templArgs == null ? 0 : templArgs.Count;
           Ir2md.WriteCompressedInt(target, n);
           for (int i = 0; i < n; i++) {
@@ -4747,7 +4749,7 @@ namespace System.Compiler{
           while (t.Template != null) t = t.Template;
           target.Write((byte)0x15);
           this.WriteTypeSignature(target, t);
-          TypeNodeList templPars = t.ConsolidatedTemplateParameters;
+          List<TypeNode> templPars = t.ConsolidatedTemplateParameters;
           int n = templPars == null ? 0 : templPars.Count;
           Ir2md.WriteCompressedInt(target, n);
           for (int i = 0; i < n; i++) {
@@ -5284,11 +5286,11 @@ namespace System.Compiler{
     internal BinaryWriter/*!*/ localVarSignature;
     internal TrivialHashtable<int>/*!*/ localVarIndex;
 #if !ROTOR
-    internal NodeList/*!*/ statementNodes;
-    internal LocalList/*!*/ debugLocals;
-    internal Int32List/*!*/ signatureLengths;
-    internal Int32List/*!*/ signatureOffsets;
-    internal Int32List/*!*/ statementOffsets;
+    internal List<Node>/*!*/ statementNodes;
+    internal List<Local>/*!*/ debugLocals;
+    internal List<int>/*!*/ signatureLengths;
+    internal List<int>/*!*/ signatureOffsets;
+    internal List<int>/*!*/ statementOffsets;
 #endif
 
     public MethodInfo() {
@@ -5422,7 +5424,7 @@ namespace System.Compiler{
       byte* pb = (byte*)Marshal.AllocHGlobal(n);
       for (int i = 0; i < n; i++) pb[i] = buffer[i];
       MemoryCursor cursor = new MemoryCursor(pb, n/*, module*/);
-      if (module.Win32Resources == null) module.Win32Resources = new Win32ResourceList();
+      if (module.Win32Resources == null) module.Win32Resources = new List<Win32Resource>();
       int reserved = cursor.ReadUInt16();
       if (reserved != 0) throw new NullReferenceException();
       int resourceType = cursor.ReadUInt16();
@@ -5481,7 +5483,7 @@ namespace System.Compiler{
       byte* pb = (byte*)Marshal.AllocHGlobal(n);
       for (int i = 0; i < n; i++) pb[i] = buffer[i];
       MemoryCursor cursor = new MemoryCursor(pb, n/*, module*/);
-      if (module.Win32Resources == null) module.Win32Resources = new Win32ResourceList();
+      if (module.Win32Resources == null) module.Win32Resources = new List<Win32Resource>();
       while (cursor.Position < n){
         Win32Resource resource = new Win32Resource();
         resource.CodePage = 0; //Review: Should this be settable?
@@ -5523,7 +5525,7 @@ namespace System.Compiler{
       resource.TypeId = 0x10;
       resource.TypeName = null;
       resource.Data = Writer.FillInVsVersionStructure(module, options);
-      if (module.Win32Resources == null) module.Win32Resources = new Win32ResourceList();
+      if (module.Win32Resources == null) module.Win32Resources = new List<Win32Resource>();
       module.Win32Resources.Add(resource);
     }
     private static byte[] FillInVsVersionStructure(Module/*!*/ module, CompilerOptions/*!*/ options) {

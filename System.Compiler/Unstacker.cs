@@ -71,7 +71,7 @@ namespace System.Compiler{
       }
       //Target block has an entry stack that is different from the current stack. Need to copy stack before branching.
       if (n <= 0) return branch; //Empty stack, no need to copy
-      StatementList statements = new StatementList(n+1);
+      List<Statement> statements = new List<Statement>(n+1);
       this.localsStack.Transfer(targetStack, statements);
       statements.Add(branch);
       return new Block(statements);
@@ -86,7 +86,7 @@ namespace System.Compiler{
       }
       return switchInstruction;
     }
-    public override ExpressionList VisitExpressionList(ExpressionList expressions) {
+    public override List<Expression> VisitExpressionList(List<Expression> expressions) {
       if (expressions == null) return null;
       for (int i = expressions.Count-1; i >= 0; i--)
         expressions[i] = this.VisitExpression(expressions[i]);
@@ -130,11 +130,11 @@ namespace System.Compiler{
 
       if (method == null) return null;
       BlockSorter blockSorter = new BlockSorter();
-      BlockList sortedBlocks = blockSorter.SortedBlocks;
+      List<Block> sortedBlocks = blockSorter.SortedBlocks;
       this.SucessorBlock = blockSorter.SuccessorBlock;
       this.StackLocalsAtEntry = new TrivialHashtable();
       this.localsStack = new LocalsStack();
-      ExceptionHandlerList ehandlers = method.ExceptionHandlers;
+      List<ExceptionHandler> ehandlers = method.ExceptionHandlers;
       for (int i = 0, n = ehandlers == null ? 0 : ehandlers.Count; i < n; i++){
         ExceptionHandler ehandler = ehandlers[i];
         if (ehandler == null) continue;
@@ -240,7 +240,7 @@ namespace System.Compiler{
         Debug.Assert(i >= 0 && i < this.elements.Length);
         return this.elements[i];
       }
-      internal void Transfer(LocalsStack/*!*/ targetStack, StatementList/*!*/ statements) {
+      internal void Transfer(LocalsStack/*!*/ targetStack, List<Statement>/*!*/ statements) {
         Debug.Assert(targetStack != null);
         if (targetStack == this) return;
         int n = this.top;
@@ -258,7 +258,7 @@ namespace System.Compiler{
       private TrivialHashtable/*!*/ VisitedBlocks = new TrivialHashtable();
       private TrivialHashtable/*!*/ BlocksThatDropThrough = new TrivialHashtable();
       private bool lastBranchWasUnconditional = false;
-      internal BlockList/*!*/ SortedBlocks = new BlockList();
+      internal List<Block>/*!*/ SortedBlocks = new List<Block>();
       internal TrivialHashtable/*!*/ SuccessorBlock = new TrivialHashtable();
 
       internal BlockSorter(){
@@ -267,7 +267,7 @@ namespace System.Compiler{
 
       internal void VisitMethodBody(Block body) {
         if (body == null) return;
-        StatementList statements = body.Statements;
+        List<Statement> statements = body.Statements;
         if (statements == null) return;
         Block previousBlock = null;
         for (int i = 0, n = statements.Count; i < n; i++) {

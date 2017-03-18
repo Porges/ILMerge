@@ -13,7 +13,7 @@ namespace System.Compiler{
   public class Comparer{
     public Comparer CallingVisitor;
     public TrivialHashtable MemberMapping;
-    public MemberList MembersThatHaveChanged;
+    public List<Member> MembersThatHaveChanged;
     public bool DoNotCompareBodies;
     public Module OriginalModule;
     public Module NewModule;
@@ -53,7 +53,7 @@ namespace System.Compiler{
       if (mi1.Size != mi2.Size) return false;
       return true;
     }
-    public virtual AttributeNode GetClosestMatch(AttributeNode/*!*/ nd1, AttributeList/*!*/ list1, AttributeList list2, int list1pos, ref int list2start,
+    public virtual AttributeNode GetClosestMatch(AttributeNode/*!*/ nd1, List<AttributeNode>/*!*/ list1, List<AttributeNode> list2, int list1pos, ref int list2start,
       TrivialHashtable/*!*/ matchedNodes, out Differences closestDifferences, out int list2pos) {
       closestDifferences = null; list2pos = -1;
       if (list2 == null) return null;
@@ -112,7 +112,7 @@ namespace System.Compiler{
       closestDifferences = winnerSoFar;
       return closest;
     }
-    public virtual Block GetClosestMatch(Block/*!*/ nd1, BlockList/*!*/ list1, BlockList list2, int list1pos, ref int list2start,
+    public virtual Block GetClosestMatch(Block/*!*/ nd1, List<Block>/*!*/ list1, List<Block> list2, int list1pos, ref int list2start,
       TrivialHashtable/*!*/ matchedNodes, out Differences closestDifferences, out int list2pos) {
       closestDifferences = null; list2pos = -1;
       if (list2 == null) return null;
@@ -230,7 +230,7 @@ namespace System.Compiler{
       closestDifferences = winnerSoFar;
       return closest;
     }
-    public virtual Expression GetClosestMatch(Expression/*!*/ nd1, ExpressionList/*!*/ list1, ExpressionList list2, int list1pos, ref int list2start,
+    public virtual Expression GetClosestMatch(Expression/*!*/ nd1, List<Expression>/*!*/ list1, List<Expression> list2, int list1pos, ref int list2start,
       TrivialHashtable/*!*/ matchedNodes, out Differences closestDifferences, out int list2pos) {
       closestDifferences = null; list2pos = -1;
       if (list2 == null) return null;
@@ -289,7 +289,7 @@ namespace System.Compiler{
       closestDifferences = winnerSoFar;
       return closest;
     }
-    public virtual FaultHandler GetClosestMatch(FaultHandler/*!*/ nd1, FaultHandlerList/*!*/ list1, FaultHandlerList list2, int list1pos, ref int list2start,
+    public virtual FaultHandler GetClosestMatch(FaultHandler/*!*/ nd1, List<FaultHandler>/*!*/ list1, List<FaultHandler> list2, int list1pos, ref int list2start,
       TrivialHashtable/*!*/ matchedNodes, out Differences closestDifferences, out int list2pos) {
       closestDifferences = null; list2pos = -1;
       if (list2 == null) return null;
@@ -466,7 +466,7 @@ namespace System.Compiler{
       closestDifferences = winnerSoFar;
       return closest;
     }
-    public virtual Node GetClosestMatch(Node/*!*/ nd1, NodeList/*!*/ list1, NodeList list2, int list1pos, ref int list2start,
+    public virtual Node GetClosestMatch(Node/*!*/ nd1, List<Node>/*!*/ list1, List<Node> list2, int list1pos, ref int list2start,
       TrivialHashtable/*!*/ matchedNodes, out Differences closestDifferences, out int list2pos) {
       closestDifferences = null; list2pos = -1;
       if (list2 == null) return null;
@@ -525,7 +525,7 @@ namespace System.Compiler{
       closestDifferences = winnerSoFar;
       return closest;
     }
-    public virtual SecurityAttribute GetClosestMatch(SecurityAttribute/*!*/ nd1, SecurityAttributeList/*!*/ list1, SecurityAttributeList list2, int list1pos, ref int list2start,
+    public virtual SecurityAttribute GetClosestMatch(SecurityAttribute/*!*/ nd1, List<SecurityAttribute>/*!*/ list1, List<SecurityAttribute> list2, int list1pos, ref int list2start,
       TrivialHashtable/*!*/ matchedNodes, out Differences closestDifferences, out int list2pos) {
       closestDifferences = null; list2pos = -1;
       if (list2 == null) return null;
@@ -584,7 +584,7 @@ namespace System.Compiler{
       closestDifferences = winnerSoFar;
       return closest;
     }
-    public virtual Statement GetClosestMatch(Statement/*!*/ nd1, StatementList/*!*/ list1, StatementList list2, int list1pos, ref int list2start,
+    public virtual Statement GetClosestMatch(Statement/*!*/ nd1, List<Statement>/*!*/ list1, List<Statement> list2, int list1pos, ref int list2start,
       TrivialHashtable/*!*/ matchedNodes, out Differences closestDifferences, out int list2pos) {
       closestDifferences = null; list2pos = -1;
       if (list2 == null) return null;
@@ -1493,7 +1493,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      ParameterList parChanges, parDeletions, parInsertions;
+      List<Parameter> parChanges, parDeletions, parInsertions;
       diff = this.VisitParameterList(func1.Parameters, func2.Parameters, out parChanges, out parDeletions, out parInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Parameters = parChanges;
@@ -1565,7 +1565,7 @@ namespace System.Compiler{
       this.OriginalModule = assembly1;
       this.NewModule = assembly2;
 
-      AssemblyReferenceList arChanges, arDeletions, arInsertions;
+      List<AssemblyReference> arChanges, arDeletions, arInsertions;
       Differences diff = this.VisitAssemblyReferenceList(assembly1.AssemblyReferences, assembly2.AssemblyReferences, out arChanges, out arDeletions, out arInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.AssemblyReferences = arChanges;
@@ -1574,7 +1574,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      AttributeList attrChanges, attrDeletions, attrInsertions;
+      List<AttributeNode> attrChanges, attrDeletions, attrInsertions;
       diff = this.VisitAttributeList(assembly1.Attributes, assembly2.Attributes, out attrChanges, out attrDeletions, out attrInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Attributes = attrChanges;
@@ -1585,7 +1585,7 @@ namespace System.Compiler{
 
       if (assembly1.Culture == assembly2.Culture) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
 
-      TypeNodeList typeChanges, typeDeletions, typeInsertions;
+      List<TypeNode> typeChanges, typeDeletions, typeInsertions;
       diff = this.VisitTypeNodeList(assembly1.ExportedTypes, assembly2.ExportedTypes, out typeChanges, out typeDeletions, out typeInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Types = typeChanges;
@@ -1606,7 +1606,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      ModuleReferenceList mrChanges, mrDeletions, mrInsertions;
+      List<ModuleReference> mrChanges, mrDeletions, mrInsertions;
       diff = this.VisitModuleReferenceList(assembly1.ModuleReferences, assembly2.ModuleReferences, out mrChanges, out mrDeletions, out mrInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.ModuleReferences = mrChanges;
@@ -1617,7 +1617,7 @@ namespace System.Compiler{
 
       if (assembly1.Name == assembly2.Name) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
 
-      SecurityAttributeList secChanges, secDeletions, secInsertions;
+      List<SecurityAttribute> secChanges, secDeletions, secInsertions;
       diff = this.VisitSecurityAttributeList(assembly1.SecurityAttributes, assembly2.SecurityAttributes, out secChanges, out secDeletions, out secInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.SecurityAttributes = secChanges;
@@ -1674,11 +1674,11 @@ namespace System.Compiler{
       }
       return differences;
     }
-    public virtual Differences VisitAssemblyReferenceList(AssemblyReferenceList list1, AssemblyReferenceList list2,
-      out AssemblyReferenceList changes, out AssemblyReferenceList deletions, out AssemblyReferenceList insertions){
+    public virtual Differences VisitAssemblyReferenceList(List<AssemblyReference> list1, List<AssemblyReference> list2,
+      out List<AssemblyReference> changes, out List<AssemblyReference> deletions, out List<AssemblyReference> insertions){
       changes = list1 == null ? null : list1.Clone();
       deletions = list1 == null ? null : list1.Clone();
-      insertions = list1 == null ? new AssemblyReferenceList() : list1.Clone();
+      insertions = list1 == null ? new List<AssemblyReference>() : list1.Clone();
       //^ assert insertions != null;
       Differences differences = new Differences();
       //Compare references that have matching assembly names
@@ -1872,7 +1872,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      ExpressionList exprChanges, exprDeletions, exprInsertions;
+      List<Expression> exprChanges, exprDeletions, exprInsertions;
       diff = this.VisitExpressionList(attribute1.Expressions, attribute2.Expressions, out exprChanges, out exprDeletions, out exprInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Expressions = exprChanges;
@@ -1894,11 +1894,11 @@ namespace System.Compiler{
       }
       return differences;
     }
-    public virtual Differences VisitAttributeList(AttributeList list1, AttributeList list2,
-      out AttributeList changes, out AttributeList deletions, out AttributeList insertions){
+    public virtual Differences VisitAttributeList(List<AttributeNode> list1, List<AttributeNode> list2,
+      out List<AttributeNode> changes, out List<AttributeNode> deletions, out List<AttributeNode> insertions){
       changes = list1 == null ? null : list1.Clone();
       deletions = list1 == null ? null : list1.Clone();
-      insertions = list1 == null ? new AttributeList() : list1.Clone();
+      insertions = list1 == null ? new List<AttributeNode>() : list1.Clone();
       //^ assert insertions != null;
       Differences differences = new Differences();
       for (int j = 0, n = list2 == null ? 0 : list2.Count; j < n; j++){
@@ -2019,7 +2019,7 @@ namespace System.Compiler{
 
       if (block1.Checked == block2.Checked) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
 
-      StatementList statChanges, statDeletions, statInsertions;
+      List<Statement> statChanges, statDeletions, statInsertions;
       Differences diff = this.VisitStatementList(block1.Statements, block2.Statements, out statChanges, out statDeletions, out statInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Statements = statChanges;
@@ -2071,11 +2071,11 @@ namespace System.Compiler{
       }
       return differences;
     }
-    public virtual Differences VisitBlockList(BlockList list1, BlockList list2,
-      out BlockList changes, out BlockList deletions, out BlockList insertions){
+    public virtual Differences VisitBlockList(List<Block> list1, List<Block> list2,
+      out List<Block> changes, out List<Block> deletions, out List<Block> insertions){
       changes = list1 == null ? null : list1.Clone();
       deletions = list1 == null ? null : list1.Clone();
-      insertions = list1 == null ? new BlockList() : list1.Clone();
+      insertions = list1 == null ? new List<Block>() : list1.Clone();
       //^ assert insertions != null;
       Differences differences = new Differences();
       for (int j = 0, n = list2 == null ? 0 : list2.Count; j < n; j++){
@@ -2277,7 +2277,7 @@ namespace System.Compiler{
       CoerceTuple deletions = (CoerceTuple)coerceTuple2.Clone();
       CoerceTuple insertions = (CoerceTuple)coerceTuple2.Clone();
 
-      FieldList fieldChanges, fieldDeletions, fieldInsertions;
+      List<Field> fieldChanges, fieldDeletions, fieldInsertions;
       Differences diff = this.VisitFieldList(coerceTuple1.Fields, coerceTuple2.Fields, out fieldChanges, out fieldDeletions, out fieldInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Fields = fieldChanges;
@@ -2379,7 +2379,7 @@ namespace System.Compiler{
       CompilationUnit deletions = (CompilationUnit)cUnit2.Clone();
       CompilationUnit insertions = (CompilationUnit)cUnit2.Clone();
 
-      NodeList nodeChanges, nodeDeletions, nodeInsertions;
+      List<Node> nodeChanges, nodeDeletions, nodeInsertions;
       Differences diff = this.VisitNodeList(cUnit1.Nodes, cUnit2.Nodes, out nodeChanges, out nodeDeletions, out nodeInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Nodes = nodeChanges;
@@ -2577,7 +2577,7 @@ namespace System.Compiler{
       Comprehension deletions = (Comprehension)comprehension2.Clone();
       Comprehension insertions = (Comprehension)comprehension2.Clone();
 
-      ExpressionList exprChanges, exprDeletions, exprInsertions;
+      List<Expression> exprChanges, exprDeletions, exprInsertions;
       Differences diff = this.VisitExpressionList(comprehension1.BindingsAndFilters, comprehension2.BindingsAndFilters, out exprChanges, out exprDeletions, out exprInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.BindingsAndFilters = exprChanges;
@@ -2685,7 +2685,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      ExpressionList exprChanges, exprDeletions, exprInsertions;
+      List<Expression> exprChanges, exprDeletions, exprInsertions;
       diff = this.VisitExpressionList(cons1.Operands, cons2.Operands, out exprChanges, out exprDeletions, out exprInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Operands = exprChanges;
@@ -2733,7 +2733,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      ExpressionList exprChanges, exprDeletions, exprInsertions;
+      List<Expression> exprChanges, exprDeletions, exprInsertions;
       diff = this.VisitExpressionList(consArr1.Initializers, consArr2.Initializers, out exprChanges, out exprDeletions, out exprInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Operands = exprChanges;
@@ -2830,7 +2830,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      ExpressionList exprChanges, exprDeletions, exprInsertions;
+      List<Expression> exprChanges, exprDeletions, exprInsertions;
       diff = this.VisitExpressionList(consArr1.Initializers, consArr2.Initializers, out exprChanges, out exprDeletions, out exprInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Operands = exprChanges;
@@ -2916,7 +2916,7 @@ namespace System.Compiler{
       ConstructTuple deletions = (ConstructTuple)consTuple2.Clone();
       ConstructTuple insertions = (ConstructTuple)consTuple2.Clone();
 
-      FieldList fieldChanges, fieldDeletions, fieldInsertions;
+      List<Field> fieldChanges, fieldDeletions, fieldInsertions;
       Differences diff = this.VisitFieldList(consTuple1.Fields, consTuple2.Fields, out fieldChanges, out fieldDeletions, out fieldInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Fields = fieldChanges;
@@ -3021,7 +3021,7 @@ namespace System.Compiler{
       DelegateNode deletions = (DelegateNode)delegateNode2.Clone();
       DelegateNode insertions = (DelegateNode)delegateNode2.Clone();
 
-      AttributeList attrChanges, attrDeletions, attrInsertions;
+      List<AttributeNode> attrChanges, attrDeletions, attrInsertions;
       Differences diff = this.VisitAttributeList(delegateNode1.Attributes, delegateNode2.Attributes, out attrChanges, out attrDeletions, out attrInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Attributes = attrChanges;
@@ -3032,7 +3032,7 @@ namespace System.Compiler{
 
       if (delegateNode1.Flags == delegateNode2.Flags) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
 
-      ParameterList parChanges, parDeletions, parInsertions;
+      List<Parameter> parChanges, parDeletions, parInsertions;
       diff = this.VisitParameterList(delegateNode1.Parameters, delegateNode2.Parameters, out parChanges, out parDeletions, out parInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Parameters = parChanges;
@@ -3050,7 +3050,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      SecurityAttributeList secChanges, secDeletions, secInsertions;
+      List<SecurityAttribute> secChanges, secDeletions, secInsertions;
       diff = this.VisitSecurityAttributeList(delegateNode1.SecurityAttributes, delegateNode2.SecurityAttributes, out secChanges, out secDeletions, out secInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.SecurityAttributes = secChanges;
@@ -3059,7 +3059,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      TypeNodeList typeChanges, typeDeletions, typeInsertions;
+      List<TypeNode> typeChanges, typeDeletions, typeInsertions;
       diff = this.VisitTypeNodeList(delegateNode1.TemplateParameters, delegateNode2.TemplateParameters, out typeChanges, out typeDeletions, out typeInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.TemplateParameters = typeChanges;
@@ -3210,7 +3210,7 @@ namespace System.Compiler{
       Event deletions = (Event)evnt2.Clone();
       Event insertions = (Event)evnt2.Clone();
 
-      AttributeList attrChanges, attrDeletions, attrInsertions;
+      List<AttributeNode> attrChanges, attrDeletions, attrInsertions;
       Differences diff = this.VisitAttributeList(evnt1.Attributes, evnt2.Attributes, out attrChanges, out attrDeletions, out attrInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Attributes = attrChanges;
@@ -3277,7 +3277,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      MethodList methChanges, methDeletions, methInsertions;
+      List<Method> methChanges, methDeletions, methInsertions;
       diff = this.VisitMethodList(evnt1.OtherMethods, evnt2.OtherMethods, out methChanges, out methDeletions, out methInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.OtherMethods = methChanges;
@@ -3329,11 +3329,11 @@ namespace System.Compiler{
         differences.Changes = expression2; //Happens when different types of expressions are compared (e.g. UnaryExpression vs BinaryExpression)
       return differences;
     }
-    public virtual Differences VisitExpressionList(ExpressionList list1, ExpressionList list2,
-      out ExpressionList changes, out ExpressionList deletions, out ExpressionList insertions){
+    public virtual Differences VisitExpressionList(List<Expression> list1, List<Expression> list2,
+      out List<Expression> changes, out List<Expression> deletions, out List<Expression> insertions){
       changes = list1 == null ? null : list1.Clone();
       deletions = list1 == null ? null : list1.Clone();
-      insertions = list1 == null ? new ExpressionList() : list1.Clone();
+      insertions = list1 == null ? new List<Expression>() : list1.Clone();
       //^ assert insertions != null;
 
       Differences differences = new Differences();
@@ -3478,11 +3478,11 @@ namespace System.Compiler{
       }
       return differences;
     }
-    public virtual Differences VisitFaultHandlerList(FaultHandlerList list1, FaultHandlerList list2,
-      out FaultHandlerList changes, out FaultHandlerList deletions, out FaultHandlerList insertions){
+    public virtual Differences VisitFaultHandlerList(List<FaultHandler> list1, List<FaultHandler> list2,
+      out List<FaultHandler> changes, out List<FaultHandler> deletions, out List<FaultHandler> insertions){
       changes = list1 == null ? null : list1.Clone();
       deletions = list1 == null ? null : list1.Clone();
-      insertions = list1 == null ? new FaultHandlerList() : list1.Clone();
+      insertions = list1 == null ? new List<FaultHandler>() : list1.Clone();
       //^ assert insertions != null;
       Differences differences = new Differences();
       for (int j = 0, n = list2 == null ? 0 : list2.Count; j < n; j++){
@@ -3552,7 +3552,7 @@ namespace System.Compiler{
       Field deletions = (Field)field2.Clone();
       Field insertions = (Field)field2.Clone();
 
-      AttributeList attrChanges, attrDeletions, attrInsertions;
+      List<AttributeNode> attrChanges, attrDeletions, attrInsertions;
       Differences diff = this.VisitAttributeList(field1.Attributes, field2.Attributes, out attrChanges, out attrDeletions, out attrInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Attributes = attrChanges;
@@ -3573,7 +3573,7 @@ namespace System.Compiler{
       if (field1.Flags == field2.Flags) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
       if (field1.HidesBaseClassMember == field2.HidesBaseClassMember) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
 
-      InterfaceList ifaceChanges, ifaceDeletions, ifaceInsertions;
+      List<Interface> ifaceChanges, ifaceDeletions, ifaceInsertions;
       diff = this.VisitInterfaceReferenceList(field1.ImplementedInterfaces, field2.ImplementedInterfaces, out ifaceChanges, out ifaceDeletions, out ifaceInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.ImplementedInterfaces = ifaceChanges;
@@ -3651,11 +3651,11 @@ namespace System.Compiler{
       }
       return differences;
     }
-    public virtual Differences VisitFieldList(FieldList list1, FieldList list2,
-      out FieldList changes, out FieldList deletions, out FieldList insertions){
+    public virtual Differences VisitFieldList(List<Field> list1, List<Field> list2,
+      out List<Field> changes, out List<Field> deletions, out List<Field> insertions){
       changes = list1 == null ? null : list1.Clone();
       deletions = list1 == null ? null : list1.Clone();
-      insertions = list1 == null ? new FieldList() : list1.Clone();
+      insertions = list1 == null ? new List<Field>() : list1.Clone();
       //^ assert insertions != null;
       Differences differences = new Differences();
       //Compare definitions that have matching key attributes
@@ -3930,7 +3930,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      StatementList statChanges, statDeletions, statInsertions;
+      List<Statement> statChanges, statDeletions, statInsertions;
       diff = this.VisitStatementList(for1.Incrementer, for2.Incrementer, out statChanges, out statDeletions, out statInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Initializer = statChanges;
@@ -4060,7 +4060,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      ParameterList parChanges, parDeletions, parInsertions;
+      List<Parameter> parChanges, parDeletions, parInsertions;
       diff = this.VisitParameterList(functionDeclaration1.Parameters, functionDeclaration2.Parameters, out parChanges, out parDeletions, out parInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Parameters = parChanges;
@@ -4108,7 +4108,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      TypeNodeList typeChanges, typeDeletions, typeInsertions;
+      List<TypeNode> typeChanges, typeDeletions, typeInsertions;
       diff = this.VisitTypeNodeList(instance1.TypeArguments, instance2.TypeArguments, out typeChanges, out typeDeletions, out typeInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.TypeArguments = typeChanges;
@@ -4315,7 +4315,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      ExpressionList exprChanges, exprDeletions, exprInsertions;
+      List<Expression> exprChanges, exprDeletions, exprInsertions;
       diff = this.VisitExpressionList(indexer1.Operands, indexer2.Operands, out exprChanges, out exprDeletions, out exprInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Operands = exprChanges;
@@ -4338,11 +4338,11 @@ namespace System.Compiler{
     public virtual Differences VisitInterface(Interface interface1, Interface interface2){
       return this.VisitTypeNode(interface1, interface2);
     }
-    public virtual Differences VisitInterfaceReferenceList(InterfaceList list1, InterfaceList list2,
-      out InterfaceList changes, out InterfaceList deletions, out InterfaceList insertions){
+    public virtual Differences VisitInterfaceReferenceList(List<Interface> list1, List<Interface> list2,
+      out List<Interface> changes, out List<Interface> deletions, out List<Interface> insertions){
       changes = list1 == null ? null : list1.Clone();
       deletions = list1 == null ? null : list1.Clone();
-      insertions = list1 == null ? new InterfaceList() : list1.Clone();
+      insertions = list1 == null ? new List<Interface>() : list1.Clone();
       //^ assert insertions != null;
       Differences differences = new Differences();
       //Compare definitions that have matching key attributes
@@ -4789,11 +4789,11 @@ namespace System.Compiler{
       }
       return differences;
     }
-    public virtual Differences VisitMemberList(MemberList list1, MemberList list2,
-      out MemberList changes, out MemberList deletions, out MemberList insertions){
+    public virtual Differences VisitMemberList(List<Member> list1, List<Member> list2,
+      out List<Member> changes, out List<Member> deletions, out List<Member> insertions){
       changes = list1 == null ? null : list1.Clone();
       deletions = list1 == null ? null : list1.Clone();
-      insertions = list1 == null ? new MemberList() : list1.Clone();
+      insertions = list1 == null ? new List<Member>() : list1.Clone();
       //^ assert insertions != null;
       Differences differences = new Differences();
       //Compare definitions that have matching key attributes
@@ -4837,7 +4837,7 @@ namespace System.Compiler{
           differences.NumberOfSimilarities += diff.NumberOfSimilarities;
           if ((nd1.DeclaringType != null && nd1.DeclaringType.DeclaringModule == this.OriginalModule) ||
             (nd1 is TypeNode && ((TypeNode)nd1).DeclaringModule == this.OriginalModule)){
-            if (this.MembersThatHaveChanged == null) this.MembersThatHaveChanged = new MemberList();
+            if (this.MembersThatHaveChanged == null) this.MembersThatHaveChanged = new List<Member>();
             this.MembersThatHaveChanged.Add(nd1);
           }
           continue;
@@ -4859,7 +4859,7 @@ namespace System.Compiler{
         differences.NumberOfDifferences += 1;
         if ((nd1.DeclaringType != null && nd1.DeclaringType.DeclaringModule == this.OriginalModule) ||
           (nd1 is TypeNode && ((TypeNode)nd1).DeclaringModule == this.OriginalModule)){
-          if (this.MembersThatHaveChanged == null) this.MembersThatHaveChanged = new MemberList();
+          if (this.MembersThatHaveChanged == null) this.MembersThatHaveChanged = new List<Member>();
           this.MembersThatHaveChanged.Add(nd1);
         }
       }
@@ -4891,7 +4891,7 @@ namespace System.Compiler{
       Method deletions = (Method)method2.Clone();
       Method insertions = (Method)method2.Clone();
 
-      AttributeList attrChanges, attrDeletions, attrInsertions;
+      List<AttributeNode> attrChanges, attrDeletions, attrInsertions;
       Differences diff = this.VisitAttributeList(method1.Attributes, method2.Attributes, out attrChanges, out attrDeletions, out attrInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Attributes = attrChanges;
@@ -4928,7 +4928,7 @@ namespace System.Compiler{
       if (method1.InitLocals == method2.InitLocals) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
       if (method1.IsGeneric == method2.IsGeneric) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
 
-      TypeNodeList typeChanges, typeDeletions, typeInsertions;
+      List<TypeNode> typeChanges, typeDeletions, typeInsertions;
       diff = this.VisitTypeNodeList(method1.ImplementedTypes, method2.ImplementedTypes, out typeChanges, out typeDeletions, out typeInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.ImplementedTypes = typeChanges;
@@ -4948,7 +4948,7 @@ namespace System.Compiler{
 
       if (method1.NodeType == method2.NodeType) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
 
-      ParameterList parChanges, parDeletions, parInsertions;
+      List<Parameter> parChanges, parDeletions, parInsertions;
       diff = this.VisitParameterList(method1.Parameters, method2.Parameters, out parChanges, out parDeletions, out parInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Parameters = parChanges;
@@ -4980,7 +4980,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      SecurityAttributeList secChanges, secDeletions, secInsertions;
+      List<SecurityAttribute> secChanges, secDeletions, secInsertions;
       diff = this.VisitSecurityAttributeList(method1.SecurityAttributes, method2.SecurityAttributes, out secChanges, out secDeletions, out secInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.SecurityAttributes = secChanges;
@@ -5025,11 +5025,11 @@ namespace System.Compiler{
       }
       return differences;
     }
-    public virtual Differences VisitMethodList(MethodList list1, MethodList list2,
-      out MethodList changes, out MethodList deletions, out MethodList insertions){
+    public virtual Differences VisitMethodList(List<Method> list1, List<Method> list2,
+      out List<Method> changes, out List<Method> deletions, out List<Method> insertions){
       changes = list1 == null ? null : list1.Clone();
       deletions = list1 == null ? null : list1.Clone();
-      insertions = list1 == null ? new MethodList() : list1.Clone();
+      insertions = list1 == null ? new List<Method>() : list1.Clone();
       //^ assert insertions != null;
       Differences differences = new Differences();
       //Compare definitions that have matching key attributes
@@ -5126,7 +5126,7 @@ namespace System.Compiler{
 
       if (call1.IsTailCall == call2.IsTailCall) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
 
-      ExpressionList exprChanges, exprDeletions, exprInsertions;
+      List<Expression> exprChanges, exprDeletions, exprInsertions;
       diff = this.VisitExpressionList(call1.Operands, call2.Operands, out exprChanges, out exprDeletions, out exprInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Operands = exprChanges;
@@ -5159,7 +5159,7 @@ namespace System.Compiler{
       this.OriginalModule = module1;
       this.NewModule = module2;
 
-      AssemblyReferenceList arChanges, arDeletions, arInsertions;
+      List<AssemblyReference> arChanges, arDeletions, arInsertions;
       Differences diff = this.VisitAssemblyReferenceList(module1.AssemblyReferences, module2.AssemblyReferences, out arChanges, out arDeletions, out arInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.AssemblyReferences = arChanges;
@@ -5168,7 +5168,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      AttributeList attrChanges, attrDeletions, attrInsertions;
+      List<AttributeNode> attrChanges, attrDeletions, attrInsertions;
       diff = this.VisitAttributeList(module1.Attributes, module2.Attributes, out attrChanges, out attrDeletions, out attrInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Attributes = attrChanges;
@@ -5180,7 +5180,7 @@ namespace System.Compiler{
       if (module1.HashAlgorithm == module2.HashAlgorithm) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
       if (module1.Kind == module2.Kind) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
 
-      ModuleReferenceList mrChanges, mrDeletions, mrInsertions;
+      List<ModuleReference> mrChanges, mrDeletions, mrInsertions;
       diff = this.VisitModuleReferenceList(module1.ModuleReferences, module2.ModuleReferences, out mrChanges, out mrDeletions, out mrInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.ModuleReferences = mrChanges;
@@ -5192,7 +5192,7 @@ namespace System.Compiler{
       if (module1.Name == module2.Name) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
       if (module1.PEKind == module2.PEKind) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
 
-      SecurityAttributeList secChanges, secDeletions, secInsertions;
+      List<SecurityAttribute> secChanges, secDeletions, secInsertions;
       diff = this.VisitSecurityAttributeList(module1.SecurityAttributes, module2.SecurityAttributes, out secChanges, out secDeletions, out secInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.SecurityAttributes = secChanges;
@@ -5204,7 +5204,7 @@ namespace System.Compiler{
       if (module1.TargetRuntimeVersion == module2.TargetRuntimeVersion) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
       if (module1.TrackDebugData == module2.TrackDebugData) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
 
-      TypeNodeList typeChanges, typeDeletions, typeInsertions;
+      List<TypeNode> typeChanges, typeDeletions, typeInsertions;
       diff = this.VisitTypeNodeList(module1.Types, module2.Types, out typeChanges, out typeDeletions, out typeInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Types = typeChanges;
@@ -5247,11 +5247,11 @@ namespace System.Compiler{
       }
       return differences;
     }
-    public virtual Differences VisitModuleReferenceList(ModuleReferenceList list1, ModuleReferenceList list2,
-      out ModuleReferenceList changes, out ModuleReferenceList deletions, out ModuleReferenceList insertions){
+    public virtual Differences VisitModuleReferenceList(List<ModuleReference> list1, List<ModuleReference> list2,
+      out List<ModuleReference> changes, out List<ModuleReference> deletions, out List<ModuleReference> insertions){
       changes = list1 == null ? null : list1.Clone();
       deletions = list1 == null ? null : list1.Clone();
-      insertions = list1 == null ? new ModuleReferenceList() : list1.Clone();
+      insertions = list1 == null ? new List<ModuleReference>() : list1.Clone();
       //^ assert insertions != null;
       Differences differences = new Differences();
       //Compare definitions that have matching key attributes
@@ -5333,7 +5333,7 @@ namespace System.Compiler{
       NameBinding deletions = (NameBinding)nameBinding2.Clone();
       NameBinding insertions = (NameBinding)nameBinding2.Clone();
 
-      MemberList memChanges, memDeletions, memInsertions;
+      List<Member> memChanges, memDeletions, memInsertions;
       Differences diff = this.VisitMemberList(nameBinding1.BoundMembers, nameBinding2.BoundMembers, out memChanges, out memDeletions, out memInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.BoundMembers = memChanges;
@@ -5423,7 +5423,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      AttributeList attrChanges, attrDeletions, attrInsertions;
+      List<AttributeNode> attrChanges, attrDeletions, attrInsertions;
       diff = this.VisitAttributeList(nspace1.Attributes, nspace2.Attributes, out attrChanges, out attrDeletions, out attrInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Attributes = attrChanges;
@@ -5441,7 +5441,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      NamespaceList nsChanges, nsDeletions, nsInsertions;
+      List<Namespace> nsChanges, nsDeletions, nsInsertions;
       diff = this.VisitNamespaceList(nspace1.NestedNamespaces, nspace2.NestedNamespaces, out nsChanges, out nsDeletions, out nsInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.NestedNamespaces = nsChanges;
@@ -5468,7 +5468,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      TypeNodeList typeChanges, typeDeletions, typeInsertions;
+      List<TypeNode> typeChanges, typeDeletions, typeInsertions;
       diff = this.VisitTypeNodeList(nspace1.Types, nspace2.Types, out typeChanges, out typeDeletions, out typeInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Types = typeChanges;
@@ -5488,11 +5488,11 @@ namespace System.Compiler{
       }
       return differences;
     }
-    public virtual Differences VisitNamespaceList(NamespaceList list1, NamespaceList list2,
-      out NamespaceList changes, out NamespaceList deletions, out NamespaceList insertions){
+    public virtual Differences VisitNamespaceList(List<Namespace> list1, List<Namespace> list2,
+      out List<Namespace> changes, out List<Namespace> deletions, out List<Namespace> insertions){
       changes = list1 == null ? null : list1.Clone();
       deletions = list1 == null ? null : list1.Clone();
-      insertions = list1 == null ? new NamespaceList() : list1.Clone();
+      insertions = list1 == null ? new List<Namespace>() : list1.Clone();
       //^ assert insertions != null;
       Differences differences = new Differences();
       //Compare definitions that have matching key attributes
@@ -5564,11 +5564,11 @@ namespace System.Compiler{
       }
       return differences;
     }
-    public virtual Differences VisitNodeList(NodeList list1, NodeList list2,
-      out NodeList changes, out NodeList deletions, out NodeList insertions){
+    public virtual Differences VisitNodeList(List<Node> list1, List<Node> list2,
+      out List<Node> changes, out List<Node> deletions, out List<Node> insertions){
       changes = list1 == null ? null : list1.Clone();
       deletions = list1 == null ? null : list1.Clone();
-      insertions = list1 == null ? new NodeList() : list1.Clone();
+      insertions = list1 == null ? new List<Node>() : list1.Clone();
       //^ assert insertions != null;
       Differences differences = new Differences();
       for (int j = 0, n = list2 == null ? 0 : list2.Count; j < n; j++){
@@ -5636,7 +5636,7 @@ namespace System.Compiler{
       Parameter deletions = (Parameter)parameter2.Clone();
       Parameter insertions = (Parameter)parameter2.Clone();
 
-      AttributeList attrChanges, attrDeletions, attrInsertions;
+      List<AttributeNode> attrChanges, attrDeletions, attrInsertions;
       Differences diff = this.VisitAttributeList(parameter1.Attributes, parameter2.Attributes, out attrChanges, out attrDeletions, out attrInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Attributes = attrChanges;
@@ -5677,11 +5677,11 @@ namespace System.Compiler{
       }
       return differences;
     }
-    public virtual Differences VisitParameterList(ParameterList list1, ParameterList list2,
-      out ParameterList changes, out ParameterList deletions, out ParameterList insertions){
+    public virtual Differences VisitParameterList(List<Parameter> list1, List<Parameter> list2,
+      out List<Parameter> changes, out List<Parameter> deletions, out List<Parameter> insertions){
       changes = list1 == null ? null : list1.Clone();
       deletions = list1 == null ? null : list1.Clone();
-      insertions = list1 == null ? new ParameterList() : list1.Clone();
+      insertions = list1 == null ? new List<Parameter>() : list1.Clone();
       //^ assert insertions != null;
       Differences differences = new Differences();
       //Compare definitions that have matching key attributes
@@ -5829,7 +5829,7 @@ namespace System.Compiler{
       Property deletions = (Property)property2.Clone();
       Property insertions = (Property)property2.Clone();
 
-      AttributeList attrChanges, attrDeletions, attrInsertions;
+      List<AttributeNode> attrChanges, attrDeletions, attrInsertions;
       Differences diff = this.VisitAttributeList(property1.Attributes, property2.Attributes, out attrChanges, out attrDeletions, out attrInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Attributes = attrChanges;
@@ -5849,7 +5849,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      TypeNodeList typeChanges, typeDeletions, typeInsertions;
+      List<TypeNode> typeChanges, typeDeletions, typeInsertions;
       diff = this.VisitTypeNodeList(property1.ImplementedTypes, property2.ImplementedTypes, out typeChanges, out typeDeletions, out typeInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.ImplementedTypes = typeChanges;
@@ -5867,7 +5867,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      MethodList methChanges, methDeletions, methInsertions;
+      List<Method> methChanges, methDeletions, methInsertions;
       diff = this.VisitMethodList(property1.OtherMethods, property2.OtherMethods, out methChanges, out methDeletions, out methInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.OtherMethods = methChanges;
@@ -5878,7 +5878,7 @@ namespace System.Compiler{
 
       if (property1.OverridesBaseClassMember == property2.OverridesBaseClassMember) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
 
-      ParameterList parChanges, parDeletions, parInsertions;
+      List<Parameter> parChanges, parDeletions, parInsertions;
       diff = this.VisitParameterList(property1.Parameters, property2.Parameters, out parChanges, out parDeletions, out parInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Parameters = parChanges;
@@ -6066,7 +6066,7 @@ namespace System.Compiler{
 
       if (attribute1.Action == attribute2.Action) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
 
-      AttributeList attrChanges, attrDeletions, attrInsertions;
+      List<AttributeNode> attrChanges, attrDeletions, attrInsertions;
       Differences diff = this.VisitAttributeList(attribute1.PermissionAttributes, attribute2.PermissionAttributes, out attrChanges, out attrDeletions, out attrInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.PermissionAttributes = attrChanges;
@@ -6089,11 +6089,11 @@ namespace System.Compiler{
       }
       return differences;
     }
-    public virtual Differences VisitSecurityAttributeList(SecurityAttributeList list1, SecurityAttributeList list2,
-      out SecurityAttributeList changes, out SecurityAttributeList deletions, out SecurityAttributeList insertions){
+    public virtual Differences VisitSecurityAttributeList(List<SecurityAttribute> list1, List<SecurityAttribute> list2,
+      out List<SecurityAttribute> changes, out List<SecurityAttribute> deletions, out List<SecurityAttribute> insertions){
       changes = list1 == null ? null : list1.Clone();
       deletions = list1 == null ? null : list1.Clone();
-      insertions = list1 == null ? new SecurityAttributeList() : list1.Clone();
+      insertions = list1 == null ? new List<SecurityAttribute>() : list1.Clone();
       //^ assert insertions != null;
       Differences differences = new Differences();
       for (int j = 0, n = list2 == null ? 0 : list2.Count; j < n; j++){
@@ -6167,11 +6167,11 @@ namespace System.Compiler{
         differences.Changes = statement2; //Happens when different types of statemetns are compared (e.g. If vs For)
       return differences;
     }
-    public virtual Differences VisitStatementList(StatementList list1, StatementList list2,
-      out StatementList changes, out StatementList deletions, out StatementList insertions){
+    public virtual Differences VisitStatementList(List<Statement> list1, List<Statement> list2,
+      out List<Statement> changes, out List<Statement> deletions, out List<Statement> insertions){
       changes = list1 == null ? null : list1.Clone();
       deletions = list1 == null ? null : list1.Clone();
-      insertions = list1 == null ? new StatementList() : list1.Clone();
+      insertions = list1 == null ? new List<Statement>() : list1.Clone();
       //^ assert insertions != null;
       Differences differences = new Differences();
       for (int j = 0, n = list2 == null ? 0 : list2.Count; j < n; j++){
@@ -6420,7 +6420,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      BlockList blockChanges, blockDeletions, blockInsertions;
+      List<Block> blockChanges, blockDeletions, blockInsertions;
       diff = this.VisitBlockList(switchInstruction1.Targets, switchInstruction2.Targets, out blockChanges, out blockDeletions, out blockInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Targets = blockChanges;
@@ -6698,7 +6698,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      FaultHandlerList faultChanges, faultDeletions, faultInsertions;
+      List<FaultHandler> faultChanges, faultDeletions, faultInsertions;
       diff = this.VisitFaultHandlerList(try1.FaultHandlers, try2.FaultHandlers, out faultChanges, out faultDeletions, out faultInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.FaultHandlers = faultChanges;
@@ -6770,7 +6770,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      AttributeList attrChanges, attrDeletions, attrInsertions;
+      List<AttributeNode> attrChanges, attrDeletions, attrInsertions;
       diff = this.VisitAttributeList(tAlias1.Attributes, tAlias2.Attributes, out attrChanges, out attrDeletions, out attrInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Attributes = attrChanges;
@@ -6790,7 +6790,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      TypeNodeList typeChanges, typeDeletions, typeInsertions;
+      List<TypeNode> typeChanges, typeDeletions, typeInsertions;
       diff = this.VisitTypeNodeList(tAlias1.TemplateParameters, tAlias2.TemplateParameters, out typeChanges, out typeDeletions, out typeInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.TemplateParameters = typeChanges;
@@ -6822,7 +6822,7 @@ namespace System.Compiler{
       TypeIntersection deletions = (TypeIntersection)typeIntersection2.Clone();
       TypeIntersection insertions = (TypeIntersection)typeIntersection2.Clone();
 
-      AttributeList attrChanges, attrDeletions, attrInsertions;
+      List<AttributeNode> attrChanges, attrDeletions, attrInsertions;
       Differences diff = this.VisitAttributeList(typeIntersection1.Attributes, typeIntersection2.Attributes, out attrChanges, out attrDeletions, out attrInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Attributes = attrChanges;
@@ -6842,7 +6842,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      TypeNodeList typeChanges, typeDeletions, typeInsertions;
+      List<TypeNode> typeChanges, typeDeletions, typeInsertions;
       diff = this.VisitTypeNodeList(typeIntersection1.TemplateParameters, typeIntersection2.TemplateParameters, out typeChanges, out typeDeletions, out typeInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.TemplateParameters = typeChanges;
@@ -6960,7 +6960,7 @@ namespace System.Compiler{
         goto done;
       }
 
-      AttributeList attrChanges, attrDeletions, attrInsertions;
+      List<AttributeNode> attrChanges, attrDeletions, attrInsertions;
       Differences diff = this.VisitAttributeList(typeNode1.Attributes, typeNode2.Attributes, out attrChanges, out attrDeletions, out attrInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Attributes = attrChanges;
@@ -6989,7 +6989,7 @@ namespace System.Compiler{
       if (typeNode1.Flags == typeNode2.Flags) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
       if (typeNode1.HidesBaseClassMember == typeNode2.HidesBaseClassMember) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
 
-      InterfaceList ifaceChanges, ifaceDeletions, ifaceInsertions;
+      List<Interface> ifaceChanges, ifaceDeletions, ifaceInsertions;
       diff = this.VisitInterfaceReferenceList(typeNode1.Interfaces, typeNode2.Interfaces, out ifaceChanges, out ifaceDeletions, out ifaceInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Interfaces = ifaceChanges;
@@ -7000,7 +7000,7 @@ namespace System.Compiler{
 
       if (typeNode1.IsGeneric == typeNode2.IsGeneric) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
 
-      MemberList memChanges, memDeletions, memInsertions;
+      List<Member> memChanges, memDeletions, memInsertions;
       diff = this.VisitMemberList(typeNode1.Members, typeNode2.Members, out memChanges, out memDeletions, out memInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Members = memChanges;
@@ -7030,7 +7030,7 @@ namespace System.Compiler{
       if (typeNode1.NodeType == typeNode2.NodeType) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
       if (typeNode1.PackingSize == typeNode2.PackingSize) differences.NumberOfSimilarities++; else differences.NumberOfDifferences++;
 
-      SecurityAttributeList secChanges, secDeletions, secInsertions;
+      List<SecurityAttribute> secChanges, secDeletions, secInsertions;
       diff = this.VisitSecurityAttributeList(typeNode1.SecurityAttributes, typeNode2.SecurityAttributes, out secChanges, out secDeletions, out secInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.SecurityAttributes = secChanges;
@@ -7048,7 +7048,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      TypeNodeList typeChanges, typeDeletions, typeInsertions;
+      List<TypeNode> typeChanges, typeDeletions, typeInsertions;
       diff = this.VisitTypeNodeList(typeNode1.TemplateArguments, typeNode2.TemplateArguments, out typeChanges, out typeDeletions, out typeInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.TemplateArguments = typeChanges;
@@ -7077,11 +7077,11 @@ namespace System.Compiler{
       }
       return differences;
     }
-    public virtual Differences VisitTypeNodeList(TypeNodeList list1, TypeNodeList list2,
-      out TypeNodeList changes, out TypeNodeList deletions, out TypeNodeList insertions){
+    public virtual Differences VisitTypeNodeList(List<TypeNode> list1, List<TypeNode> list2,
+      out List<TypeNode> changes, out List<TypeNode> deletions, out List<TypeNode> insertions){
       changes = list1 == null ? null : list1.Clone();
       deletions = list1 == null ? null : list1.Clone();
-      insertions = list1 == null ? new TypeNodeList() : list1.Clone();
+      insertions = list1 == null ? new List<TypeNode>() : list1.Clone();
       //^ assert insertions != null;
       Differences differences = new Differences();
       //Compare definitions that have matching key attributes
@@ -7125,7 +7125,7 @@ namespace System.Compiler{
           differences.NumberOfSimilarities += diff.NumberOfSimilarities;
           if (nd1.DeclaringModule == this.OriginalModule || 
             (nd1.DeclaringType != null && nd1.DeclaringType.DeclaringModule == this.OriginalModule)){
-            if (this.MembersThatHaveChanged == null) this.MembersThatHaveChanged = new MemberList();
+            if (this.MembersThatHaveChanged == null) this.MembersThatHaveChanged = new List<Member>();
             this.MembersThatHaveChanged.Add(nd1);
           }
           continue;
@@ -7147,7 +7147,7 @@ namespace System.Compiler{
         differences.NumberOfDifferences += 1;
         if (nd1.DeclaringModule == this.OriginalModule || 
           (nd1.DeclaringType != null && nd1.DeclaringType.DeclaringModule == this.OriginalModule)){
-          if (this.MembersThatHaveChanged == null) this.MembersThatHaveChanged = new MemberList();
+          if (this.MembersThatHaveChanged == null) this.MembersThatHaveChanged = new List<Member>();
           this.MembersThatHaveChanged.Add(nd1);
         }
       }
@@ -7180,7 +7180,7 @@ namespace System.Compiler{
       TypeUnion deletions = (TypeUnion)typeUnion2.Clone();
       TypeUnion insertions = (TypeUnion)typeUnion2.Clone();
 
-      AttributeList attrChanges, attrDeletions, attrInsertions;
+      List<AttributeNode> attrChanges, attrDeletions, attrInsertions;
       Differences diff = this.VisitAttributeList(typeUnion1.Attributes, typeUnion2.Attributes, out attrChanges, out attrDeletions, out attrInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.Attributes = attrChanges;
@@ -7200,7 +7200,7 @@ namespace System.Compiler{
       differences.NumberOfDifferences += diff.NumberOfDifferences;
       differences.NumberOfSimilarities += diff.NumberOfSimilarities;
 
-      TypeNodeList typeChanges, typeDeletions, typeInsertions;
+      List<TypeNode> typeChanges, typeDeletions, typeInsertions;
       diff = this.VisitTypeNodeList(typeUnion1.TemplateParameters, typeUnion2.TemplateParameters, out typeChanges, out typeDeletions, out typeInsertions);
       if (diff == null){Debug.Assert(false); return differences;}
       changes.TemplateParameters = typeChanges;

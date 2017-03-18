@@ -635,7 +635,7 @@ namespace System.Compiler{
       }
       return attribute1;
     }
-    public virtual AttributeList VisitAttributeList(AttributeList attributes1, AttributeList attributes2){
+    public virtual List<AttributeNode> VisitAttributeList(List<AttributeNode> attributes1, List<AttributeNode> attributes2){
       if (attributes1 == null) return null;
       for (int i = 0, n = attributes1.Count, m = attributes2 == null ? 0 : attributes2.Count; i < n; i++){
         //^ assert attributes2 != null;
@@ -676,7 +676,7 @@ namespace System.Compiler{
         blockExpression1.Block = this.VisitBlock(blockExpression1.Block, blockExpression2.Block);
       return blockExpression1;
     }
-    public virtual BlockList VisitBlockList(BlockList blockList1, BlockList blockList2){
+    public virtual List<Block> VisitBlockList(List<Block> blockList1, List<Block> blockList2){
       if (blockList1 == null) return null;
       for (int i = 0, n = blockList1.Count, m = blockList2 == null ? 0 : blockList2.Count; i < n; i++){
         //^ assert blockList2 != null;
@@ -908,7 +908,7 @@ namespace System.Compiler{
       return endFinally1;
     }
 #if ExtendedRuntime
-    public virtual EnsuresList VisitEnsuresList(EnsuresList ensures1, EnsuresList ensures2) {
+    public virtual List<Ensures> VisitEnsuresList(List<Ensures> ensures1, List<Ensures> ensures2) {
       if (ensures1 == null) return null;
       for (int i = 0, n = ensures1.Count, m = ensures2 == null ? 0 : ensures2.Count; i < n; i++) {
         //^ assert ensures2 != null;
@@ -983,7 +983,7 @@ namespace System.Compiler{
           return (Expression)this.Visit(expression1, expression2);
       }
     }
-    public virtual ExpressionList VisitExpressionList(ExpressionList list1, ExpressionList list2){
+    public virtual List<Expression> VisitExpressionList(List<Expression> list1, List<Expression> list2){
       if (list1 == null) return null;
       for (int i = 0, n = list1.Count, m = list2 == null ? 0 : list2.Count; i < n; i++){
         //^ assert list2 != null;
@@ -1013,7 +1013,7 @@ namespace System.Compiler{
         faultHandler1.Block = this.VisitBlock(faultHandler1.Block, faultHandler2.Block);
       return faultHandler1;
     }
-    public virtual FaultHandlerList VisitFaultHandlerList(FaultHandlerList faultHandlers1, FaultHandlerList faultHandlers2){
+    public virtual List<FaultHandler> VisitFaultHandlerList(List<FaultHandler> faultHandlers1, List<FaultHandler> faultHandlers2){
       if (faultHandlers1 == null) return null;
       for (int i = 0, n = faultHandlers1.Count, m = faultHandlers2 == null ? 0 : faultHandlers2.Count; i < n; i++){
         //^ assert faultHandlers2 != null;
@@ -1047,7 +1047,7 @@ namespace System.Compiler{
         block1.Type = this.VisitTypeReference(block1.Type, block2.Type);
       return this.VisitBlock(block1, block2);
     }
-    public virtual FieldList VisitFieldList(FieldList fields1, FieldList fields2){
+    public virtual List<Field> VisitFieldList(List<Field> fields1, List<Field> fields2){
       if (fields1 == null) return null;
       for (int i = 0, n = fields1.Count, m = fields2 == null ? 0 : fields2.Count; i < n; i++){
         //^ assert fields2 != null;
@@ -1218,7 +1218,7 @@ namespace System.Compiler{
     public virtual Interface VisitInterfaceReference(Interface Interface1, Interface Interface2){
       return (Interface)this.VisitTypeReference(Interface1, Interface2);
     }
-    public virtual InterfaceList VisitInterfaceReferenceList(InterfaceList interfaceReferences1, InterfaceList interfaceReferences2){
+    public virtual List<Interface> VisitInterfaceReferenceList(List<Interface> interfaceReferences1, List<Interface> interfaceReferences2){
       if (interfaceReferences1 == null) return null;
       for (int i = 0, n = interfaceReferences1.Count, m = interfaceReferences2 == null ? 0 : interfaceReferences2.Count; i < n; i++){
         //^ assert interfaceReferences2 != null;
@@ -1239,7 +1239,7 @@ namespace System.Compiler{
       }
       return invariant1;
     }
-    public virtual InvariantList VisitInvariantList(InvariantList Invariants1, InvariantList Invariants2){
+    public virtual List<Invariant> VisitInvariantList(List<Invariant> Invariants1, List<Invariant> Invariants2){
       if (Invariants1 == null) return null;
       for (int i = 0, n = Invariants1.Count, m = Invariants2 == null ? 0 : Invariants2.Count; i < n; i++){
         //^ assert Invariants2 != null;
@@ -1330,7 +1330,7 @@ namespace System.Compiler{
         memberBinding1.TargetObject = this.VisitExpression(memberBinding1.TargetObject, memberBinding2.TargetObject);
       return memberBinding1;
     }
-    public virtual MemberList VisitMemberList(MemberList members1, MemberList members2){
+    public virtual List<Member> VisitMemberList(List<Member> members1, List<Member> members2){
       if (members1 == null) return null;
       for (int i = 0, n = members1.Count, m = members2 == null ? 0 : members2.Count; i < n; i++){
         //^ assert members2 != null;
@@ -1437,7 +1437,7 @@ namespace System.Compiler{
       }
       return nspace1;
     }
-    public virtual NamespaceList VisitNamespaceList(NamespaceList namespaces1, NamespaceList namespaces2){
+    public virtual List<Namespace> VisitNamespaceList(List<Namespace> namespaces1, List<Namespace> namespaces2){
       if (namespaces1 == null) return null;
       for (int i = 0, n = namespaces1.Count, m = namespaces2 == null ? 0 : namespaces2.Count; i < n; i++){
         //^ assert namespaces2 != null;
@@ -1448,7 +1448,7 @@ namespace System.Compiler{
       }
       return namespaces1;
     }
-    public virtual NodeList VisitNodeList(NodeList nodes1, NodeList nodes2){
+    public virtual List<Node> VisitNodeList(List<Node> nodes1, List<Node> nodes2){
       if (nodes1 == null) return null;
       for (int i = 0, n = nodes1.Count, m = nodes2 == null ? 0 : nodes2.Count; i < n; i++){
         //^ assert nodes2 != null;
@@ -1501,7 +1501,7 @@ namespace System.Compiler{
       }
       return parameter1;
     }
-    public virtual ParameterList VisitParameterList(ParameterList parameterList1, ParameterList parameterList2){
+    public virtual List<Parameter> VisitParameterList(List<Parameter> parameterList1, List<Parameter> parameterList2){
       if (parameterList1 == null) return null;
       for (int i = 0, n = parameterList1.Count, m = parameterList2 == null ? 0 : parameterList2.Count; i < n; i++){
         //^ assert parameterList2 != null;
@@ -1604,7 +1604,7 @@ namespace System.Compiler{
       return repeat1;
     }
 #if ExtendedRuntime
-    public virtual RequiresList VisitRequiresList(RequiresList requires1, RequiresList requires2) {
+    public virtual List<Requires> VisitRequiresList(List<Requires> requires1, List<Requires> requires2) {
       if (requires1 == null) return null;
       for (int i = 0, n = requires1.Count, m = requires2 == null ? 0 : requires2.Count; i < n; i++) {
         //^ assert requires2 != null;
@@ -1638,7 +1638,7 @@ namespace System.Compiler{
     public virtual SecurityAttribute VisitSecurityAttribute(SecurityAttribute attribute1, SecurityAttribute attribute2){
       return attribute1;
     }
-    public virtual SecurityAttributeList VisitSecurityAttributeList(SecurityAttributeList attributes1, SecurityAttributeList attributes2){
+    public virtual List<SecurityAttribute> VisitSecurityAttributeList(List<SecurityAttribute> attributes1, List<SecurityAttribute> attributes2){
       if (attributes1 == null) return null;
       for (int i = 0, n = attributes1.Count, m = attributes2 == null ? 0 : attributes2.Count; i < n; i++){
         //^ assert attributes2 != null;
@@ -1652,7 +1652,7 @@ namespace System.Compiler{
     public virtual Expression VisitSetterValue(SetterValue value1, SetterValue value2){
       return value1;
     }
-    public virtual StatementList VisitStatementList(StatementList statements1, StatementList statements2){
+    public virtual List<Statement> VisitStatementList(List<Statement> statements1, List<Statement> statements2){
       if (statements1 == null) return null;
       for (int i = 0, n = statements1.Count, m = statements2 == null ? 0 : statements2.Count; i < n; i++){
         //^ assert statements2 != null;
@@ -1873,7 +1873,7 @@ namespace System.Compiler{
       }
       return typeNode1;
     }
-    public virtual TypeNodeList VisitTypeNodeList(TypeNodeList types1, TypeNodeList types2){
+    public virtual List<TypeNode> VisitTypeNodeList(List<TypeNode> types1, List<TypeNode> types2){
       if (types1 == null) return null;
       if (types2 == null){
         for (int i = 0; i < types1.Count; i++) //Visiting a type may result in a new type being appended to this list
@@ -1896,7 +1896,7 @@ namespace System.Compiler{
         typeParameter1.Interfaces = this.VisitInterfaceReferenceList(typeParameter1.Interfaces, typeParameter2.Interfaces);
       return typeParameter1;
     }
-    public virtual TypeNodeList VisitTypeParameterList(TypeNodeList typeParameters1, TypeNodeList typeParameters2){
+    public virtual List<TypeNode> VisitTypeParameterList(List<TypeNode> typeParameters1, List<TypeNode> typeParameters2){
       if (typeParameters1 == null) return null;
       for (int i = 0, n = typeParameters1.Count, m = typeParameters2 == null ? 0 : typeParameters2.Count; i < n; i++){
         //^ assert typeParameters2 != null;
@@ -1921,7 +1921,7 @@ namespace System.Compiler{
       }
       return typeReference1;
     }
-    public virtual TypeNodeList VisitTypeReferenceList(TypeNodeList typeReferences1, TypeNodeList typeReferences2){
+    public virtual List<TypeNode> VisitTypeReferenceList(List<TypeNode> typeReferences1, List<TypeNode> typeReferences2){
       if (typeReferences1 == null) return null;
       for (int i = 0, n = typeReferences1.Count, m = typeReferences2 == null ? 0 : typeReferences2.Count; i < n; i++){
         //^ assert typeReferences2 != null;

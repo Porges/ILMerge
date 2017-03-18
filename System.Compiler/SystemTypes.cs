@@ -2,9 +2,10 @@ using System;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
+using System.Collections.Generic;
 #if FxCop
-using InterfaceList = Microsoft.Cci.InterfaceCollection;
-using TypeNodeList = Microsoft.Cci.TypeNodeCollection;
+using List<Interface> = Microsoft.Cci.InterfaceCollection;
+using List<TypeNode> = Microsoft.Cci.TypeNodeCollection;
 using Module = Microsoft.Cci.ModuleNode;
 using Class = Microsoft.Cci.ClassNode;
 using Interface = Microsoft.Cci.InterfaceNode;
@@ -702,7 +703,7 @@ namespace System.Compiler{
         }
 
         if (NonNullType != null) {
-          MemberList ml = NonNullType.GetMembersNamed(Identifier.For("AssertInitialized"));
+          List<Member> ml = NonNullType.GetMembersNamed(Identifier.For("AssertInitialized"));
           if (ml != null && ml.Count > 0) {
             foreach (Member mem in ml) {
               Method m = mem as Method;
@@ -1057,12 +1058,12 @@ namespace System.Compiler{
     }
     private static void InstantiateGenericInterfaces(TypeNode type){
       if (type == null) return;
-      InterfaceList interfaces = type.Interfaces;
+      List<Interface> interfaces = type.Interfaces;
       for (int i = 0, n = interfaces == null ? 0 : interfaces.Count; i < n; i++){
         InterfaceExpression ifaceExpr = interfaces[i] as InterfaceExpression;
         if (ifaceExpr == null) continue;
         if (ifaceExpr.Template == null) {Debug.Assert(false); continue;}
-        TypeNodeList templArgs = ifaceExpr.TemplateArguments;
+        List<TypeNode> templArgs = ifaceExpr.TemplateArguments;
         for (int j = 0, m = templArgs.Count; j < m; j++){
           InterfaceExpression ie = templArgs[j] as InterfaceExpression;
           if (ie != null) 

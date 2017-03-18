@@ -619,7 +619,7 @@ namespace System.Compiler{
         return null;
       return assemblyReference;
     }
-    public virtual AssemblyReferenceList VisitAssemblyReferenceList(AssemblyReferenceList assemblyReferences, AssemblyReferenceList changes, AssemblyReferenceList deletions, AssemblyReferenceList insertions){
+    public virtual List<AssemblyReference> VisitAssemblyReferenceList(List<AssemblyReference> assemblyReferences, List<AssemblyReference> changes, List<AssemblyReference> deletions, List<AssemblyReference> insertions){
       if (changes == null || deletions == null || insertions == null) return assemblyReferences;
       int n = assemblyReferences == null ? 0 : assemblyReferences.Count;
       if (n > changes.Count){Debug.Assert(false); n = changes.Count;}
@@ -628,7 +628,7 @@ namespace System.Compiler{
       if (assemblyReferences != null)
         for (int i = 0; i < n; i++)
           assemblyReferences[i] = this.VisitAssemblyReference(assemblyReferences[i], changes[i], deletions[i], insertions[i]);
-      AssemblyReferenceList result = new AssemblyReferenceList(insertions.Count-n);
+      List<AssemblyReference> result = new List<AssemblyReference>(insertions.Count-n);
       for (int i = n, m = insertions.Count; i < m; i++)
         result.Add(insertions[i]);
       return result;
@@ -690,7 +690,7 @@ namespace System.Compiler{
         return null;
       return attribute;
     }
-    public virtual AttributeList VisitAttributeList(AttributeList attributes, AttributeList changes, AttributeList deletions, AttributeList insertions){
+    public virtual List<AttributeNode> VisitAttributeList(List<AttributeNode> attributes, List<AttributeNode> changes, List<AttributeNode> deletions, List<AttributeNode> insertions){
       if (changes == null || deletions == null || insertions == null) return attributes;
       int n = attributes == null ? 0 : attributes.Count;
       if (n > changes.Count){Debug.Assert(false); n = changes.Count;}
@@ -699,7 +699,7 @@ namespace System.Compiler{
       if (attributes != null)
         for (int i = 0; i < n; i++)
           attributes[i] = this.VisitAttributeNode(attributes[i], changes[i], deletions[i], insertions[i]);
-      AttributeList result = new AttributeList(insertions.Count-n);
+      List<AttributeNode> result = new List<AttributeNode>(insertions.Count-n);
       for (int i = n, m = insertions.Count; i < m; i++)
         result.Add(insertions[i]);
       return result;
@@ -759,16 +759,16 @@ namespace System.Compiler{
         return null;
       return blockExpression;
     }
-    public virtual BlockList VisitBlockList(BlockList blockList, BlockList changes, BlockList deletions, BlockList insertions){
-      if (changes == null || deletions == null || insertions == null) return blockList;
-      int n = blockList == null ? 0 : blockList.Count;
+    public virtual List<Block> VisitBlockList(List<Block> List<Block>, List<Block> changes, List<Block> deletions, List<Block> insertions){
+      if (changes == null || deletions == null || insertions == null) return List<Block>;
+      int n = List<Block> == null ? 0 : List<Block>.Count;
       if (n > changes.Count){Debug.Assert(false); n = changes.Count;}
       if (n > deletions.Count){Debug.Assert(false); n = deletions.Count;}
       if (n > insertions.Count){Debug.Assert(false); n = insertions.Count;}
-      if (blockList != null)
+      if (List<Block> != null)
         for (int i = 0; i < n; i++)
-          blockList[i] = this.VisitBlock(blockList[i], changes[i], deletions[i], insertions[i]);
-      BlockList result = new BlockList(insertions.Count-n);
+          List<Block>[i] = this.VisitBlock(List<Block>[i], changes[i], deletions[i], insertions[i]);
+      List<Block> result = new List<Block>(insertions.Count-n);
       for (int i = n, m = insertions.Count; i < m; i++)
         result.Add(insertions[i]);
       return result;
@@ -1140,7 +1140,7 @@ namespace System.Compiler{
     public virtual Expression VisitExpression(Expression expression, Expression changes, Expression deletions, Expression insertions){
       return this.Visit(expression, changes, deletions, insertions) as Expression;
     }
-    public virtual ExpressionList VisitExpressionList(ExpressionList expressions, ExpressionList changes, ExpressionList deletions, ExpressionList insertions){
+    public virtual List<Expression> VisitExpressionList(List<Expression> expressions, List<Expression> changes, List<Expression> deletions, List<Expression> insertions){
       if (changes == null || deletions == null || insertions == null) return expressions;
       int n = expressions == null ? 0 : expressions.Count;
       if (n > changes.Count){Debug.Assert(false); n = changes.Count;}
@@ -1149,7 +1149,7 @@ namespace System.Compiler{
       if (expressions != null)
         for (int i = 0; i < n; i++)
           expressions[i] = this.VisitExpression(expressions[i], changes[i], deletions[i], insertions[i]);
-      ExpressionList result = new ExpressionList(insertions.Count-n);
+      List<Expression> result = new List<Expression>(insertions.Count-n);
       for (int i = n, m = insertions.Count; i < m; i++)
         result.Add(insertions[i]);
       return result;
@@ -1192,7 +1192,7 @@ namespace System.Compiler{
         return null;
       return faultHandler;
     }
-    public virtual FaultHandlerList VisitFaultHandlerList(FaultHandlerList faultHandlers, FaultHandlerList changes, FaultHandlerList deletions, FaultHandlerList insertions){
+    public virtual List<FaultHandler> VisitFaultHandlerList(List<FaultHandler> faultHandlers, List<FaultHandler> changes, List<FaultHandler> deletions, List<FaultHandler> insertions){
       if (changes == null || deletions == null || insertions == null) return faultHandlers;
       int n = faultHandlers == null ? 0 : faultHandlers.Count;
       if (n > changes.Count){Debug.Assert(false); n = changes.Count;}
@@ -1201,7 +1201,7 @@ namespace System.Compiler{
       if (faultHandlers != null)
         for (int i = 0; i < n; i++)
           faultHandlers[i] = this.VisitFaultHandler(faultHandlers[i], changes[i], deletions[i], insertions[i]);
-      FaultHandlerList result = new FaultHandlerList(insertions.Count-n);
+      List<FaultHandler> result = new List<FaultHandler>(insertions.Count-n);
       for (int i = n, m = insertions.Count; i < m; i++)
         result.Add(insertions[i]);
       return result;
@@ -1247,7 +1247,7 @@ namespace System.Compiler{
         return null;
       return block;
     }
-    public virtual FieldList VisitFieldList(FieldList fields, FieldList changes, FieldList deletions, FieldList insertions){
+    public virtual List<Field> VisitFieldList(List<Field> fields, List<Field> changes, List<Field> deletions, List<Field> insertions){
       if (changes == null || deletions == null || insertions == null) return fields;
       int n = fields == null ? 0 : fields.Count;
       if (n > changes.Count){Debug.Assert(false); n = changes.Count;}
@@ -1256,7 +1256,7 @@ namespace System.Compiler{
       if (fields != null)
         for (int i = 0; i < n; i++)
           fields[i] = this.VisitField(fields[i], changes[i], deletions[i], insertions[i]);
-      FieldList result = new FieldList(insertions.Count-n);
+      List<Field> result = new List<Field>(insertions.Count-n);
       for (int i = n, m = insertions.Count; i < m; i++)
         result.Add(insertions[i]);
       return result;
@@ -1437,7 +1437,7 @@ namespace System.Compiler{
     public virtual Interface VisitInterface(Interface Interface, Interface changes, Interface deletions, Interface insertions){
       return (Interface)this.VisitTypeNode(Interface, changes, deletions, insertions);
     }
-    public virtual InterfaceList VisitInterfaceReferenceList(InterfaceList interfaces, InterfaceList changes, InterfaceList deletions, InterfaceList insertions){
+    public virtual List<Interface> VisitInterfaceReferenceList(List<Interface> interfaces, List<Interface> changes, List<Interface> deletions, List<Interface> insertions){
       if (interfaces == null) return changes;
       if (changes != null){
         if (deletions == null || insertions == null)
@@ -1561,7 +1561,7 @@ namespace System.Compiler{
         return null;
       return memberBinding;
     }
-    public virtual MemberList VisitMemberList(MemberList members, MemberList changes, MemberList deletions, MemberList insertions){
+    public virtual List<Member> VisitMemberList(List<Member> members, List<Member> changes, List<Member> deletions, List<Member> insertions){
       if (members == null) return changes;
       if (changes != null){
         if (deletions == null || insertions == null)
@@ -1599,7 +1599,7 @@ namespace System.Compiler{
     public virtual Method VisitMethodReference(Method method, Method changes){
       return method;
     }
-    public virtual MethodList VisitMethodReferenceList(MethodList methodList, MethodList changesList){
+    public virtual List<Method> VisitMethodReferenceList(List<Method> methodList, List<Method> changesList){
       return methodList;
     }
     public virtual Module VisitModule(Module module, Module changes, Module deletions, Module insertions){
@@ -1626,7 +1626,7 @@ namespace System.Compiler{
         return null;
       return moduleReference;
     }
-    public virtual ModuleReferenceList VisitModuleReferenceList(ModuleReferenceList moduleReferences, ModuleReferenceList changes, ModuleReferenceList deletions, ModuleReferenceList insertions){
+    public virtual List<ModuleReference> VisitModuleReferenceList(List<ModuleReference> moduleReferences, List<ModuleReference> changes, List<ModuleReference> deletions, List<ModuleReference> insertions){
       return moduleReferences;
     }
     public virtual Expression VisitNameBinding(NameBinding nameBinding, NameBinding changes, NameBinding deletions, NameBinding insertions){
@@ -1658,7 +1658,7 @@ namespace System.Compiler{
       if (nspace == null) return changes;
       return nspace;
     }
-    public virtual NamespaceList VisitNamespaceList(NamespaceList namespaces, NamespaceList changes, NamespaceList deletions, NamespaceList insertions){
+    public virtual List<Namespace> VisitNamespaceList(List<Namespace> namespaces, List<Namespace> changes, List<Namespace> deletions, List<Namespace> insertions){
       if (namespaces == null) return changes;
       if (changes != null){
         if (deletions == null || insertions == null)
@@ -1669,16 +1669,16 @@ namespace System.Compiler{
         return null;
       return namespaces;
     }
-    public virtual NodeList VisitNodeList(NodeList nodeList, NodeList changes, NodeList deletions, NodeList insertions){
-      if (changes == null || deletions == null || insertions == null) return nodeList;
-      int n = nodeList == null ? 0 : nodeList.Count;
+    public virtual List<Node> VisitNodeList(List<Node> List<Node>, List<Node> changes, List<Node> deletions, List<Node> insertions){
+      if (changes == null || deletions == null || insertions == null) return List<Node>;
+      int n = List<Node> == null ? 0 : List<Node>.Count;
       if (n > changes.Count){Debug.Assert(false); n = changes.Count;}
       if (n > deletions.Count){Debug.Assert(false); n = deletions.Count;}
       if (n > insertions.Count){Debug.Assert(false); n = insertions.Count;}
-      if (nodeList != null)
+      if (List<Node> != null)
         for (int i = 0; i < n; i++)
-          nodeList[i] = this.Visit(nodeList[i], changes[i], deletions[i], insertions[i]);
-      NodeList result = new NodeList(insertions.Count-n);
+          List<Node>[i] = this.Visit(List<Node>[i], changes[i], deletions[i], insertions[i]);
+      List<Node> result = new List<Node>(insertions.Count-n);
       for (int i = n, m = insertions.Count; i < m; i++)
         result.Add(insertions[i]);
       return result;
@@ -1695,7 +1695,7 @@ namespace System.Compiler{
         return null;
       return parameter;
     }
-    public virtual ParameterList VisitParameterList(ParameterList parameterList, ParameterList changes, ParameterList deletions, ParameterList insertions){
+    public virtual List<Parameter> VisitParameterList(List<Parameter> parameterList, List<Parameter> changes, List<Parameter> deletions, List<Parameter> insertions){
       if (parameterList == null) return changes;
       if (changes != null){
         if (deletions == null || insertions == null)
@@ -1802,7 +1802,7 @@ namespace System.Compiler{
         return null;
       return attribute;
     }
-    public virtual SecurityAttributeList VisitSecurityAttributeList(SecurityAttributeList attributes, SecurityAttributeList changes, SecurityAttributeList deletions, SecurityAttributeList insertions){
+    public virtual List<SecurityAttribute> VisitSecurityAttributeList(List<SecurityAttribute> attributes, List<SecurityAttribute> changes, List<SecurityAttribute> deletions, List<SecurityAttribute> insertions){
       if (attributes == null) return changes;
       if (changes != null){
         if (deletions == null || insertions == null)
@@ -1825,7 +1825,7 @@ namespace System.Compiler{
         return null;
       return value;
     }
-    public virtual StatementList VisitStatementList(StatementList statements, StatementList changes, StatementList deletions, StatementList insertions){
+    public virtual List<Statement> VisitStatementList(List<Statement> statements, List<Statement> changes, List<Statement> deletions, List<Statement> insertions){
       if (statements == null) return changes;
       if (changes != null){
         if (deletions == null || insertions == null)
@@ -2035,7 +2035,7 @@ namespace System.Compiler{
         return null;
       return typeNode;
     }
-    public virtual TypeNodeList VisitTypeNodeList(TypeNodeList types, TypeNodeList changes, TypeNodeList deletions, TypeNodeList insertions){
+    public virtual List<TypeNode> VisitTypeNodeList(List<TypeNode> types, List<TypeNode> changes, List<TypeNode> deletions, List<TypeNode> insertions){
       if (types == null) return changes;
       if (changes != null){
         if (deletions == null || insertions == null)
@@ -2058,7 +2058,7 @@ namespace System.Compiler{
         return null;
       return typeParameter;
     }
-    public virtual TypeNodeList VisitTypeParameterList(TypeNodeList typeParameters, TypeNodeList changes, TypeNodeList deletions, TypeNodeList insertions){
+    public virtual List<TypeNode> VisitTypeParameterList(List<TypeNode> typeParameters, List<TypeNode> changes, List<TypeNode> deletions, List<TypeNode> insertions){
       if (typeParameters == null) return changes;
       if (changes != null){
         if (deletions == null || insertions == null)
@@ -2075,7 +2075,7 @@ namespace System.Compiler{
     public virtual TypeReference VisitTypeReference(TypeReference type, TypeReference changes, TypeReference deletions, TypeReference insertions){
       return type;
     }
-    public virtual TypeNodeList VisitTypeReferenceList(TypeNodeList typeReferences, TypeNodeList changes, TypeNodeList deletions, TypeNodeList insertions){
+    public virtual List<TypeNode> VisitTypeReferenceList(List<TypeNode> typeReferences, List<TypeNode> changes, List<TypeNode> deletions, List<TypeNode> insertions){
       if (typeReferences == null) return changes;
       if (changes != null){
         if (deletions == null || insertions == null)

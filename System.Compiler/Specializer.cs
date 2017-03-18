@@ -1,11 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
+using System.Linq;
 #if FxCop
-using InterfaceList = Microsoft.Cci.InterfaceCollection;
-using MemberList = Microsoft.Cci.MemberCollection;
-using MethodList = Microsoft.Cci.MethodCollection;
-using TypeNodeList = Microsoft.Cci.TypeNodeCollection;
+using List<Interface> = Microsoft.Cci.InterfaceCollection;
+using List<Member> = Microsoft.Cci.MemberCollection;
+using List<Method> = Microsoft.Cci.MethodCollection;
+using List<TypeNode> = Microsoft.Cci.TypeNodeCollection;
 using Module = Microsoft.Cci.ModuleNode;
 using Class = Microsoft.Cci.ClassNode;
 using Interface = Microsoft.Cci.InterfaceNode;
@@ -40,14 +42,14 @@ namespace System.Compiler{
   public 
 #endif
   class Specializer : StandardVisitor{
-    public TypeNodeList pars;
-    public TypeNodeList args;
+    public List<TypeNode> pars;
+    public List<TypeNode> args;
     public Method CurrentMethod;
     public TypeNode CurrentType;
     public Module TargetModule;
     private TrivialHashtable forwarding = new TrivialHashtable();
 
-    public Specializer(Module targetModule, TypeNodeList pars, TypeNodeList args){
+    public Specializer(Module targetModule, List<TypeNode> pars, List<TypeNode> args){
       Debug.Assert(pars != null && pars.Count > 0);
       Debug.Assert(args != null && args.Count > 0);
       this.pars = pars;
@@ -102,7 +104,7 @@ namespace System.Compiler{
         Method template = this.VisitMemberReference(method.Template) as Method;
         // Assertion is wrong as declaring type could be instantiated and specialized. Debug.Assert(template == method.Template);
         bool needNewInstance = template != null && template != method.Template;
-        TypeNodeList args = method.TemplateArguments.Clone();
+        List<TypeNode> args = method.TemplateArguments.ToList();
         for (int i = 0, n = args.Count; i < n; i++)
         {
           TypeNode arg = this.VisitTypeReference(args[i]);
@@ -127,8 +129,8 @@ namespace System.Compiler{
       //member belongs to a structural type based on a type parameter.
       //return the corresponding member from the structural type based on the type argument.
       if (member.DeclaringType == null) { Debug.Fail(""); return null; }
-      MemberList unspecializedMembers = member.DeclaringType.Members;
-      MemberList specializedMembers = specializedType.Members;
+      List<Member> unspecializedMembers = member.DeclaringType.Members;
+      List<Member> specializedMembers = specializedType.Members;
       if (unspecializedMembers == null || specializedMembers == null) { Debug.Assert(false); return null; }
       int unspecializedOffset = 0;
       int specializedOffset = 0;
@@ -223,20 +225,20 @@ namespace System.Compiler{
     /// <summary>
     /// Assumes the list itself was cloned by the duplicator.
     /// </summary>
-    private TypeNodeList FreshTypeParameterListIfNecessary(TypeNodeList typeNodeList)
+    private List<TypeNode> FreshTypeParameterListIfNecessary(List<TypeNode> typeNodes)
     {
-        if (typeNodeList == null) return null;
+        if (typeNodes == null) return null;
 
-        for (int i = 0; i < typeNodeList.Count; i++)
+        for (int i = 0; i < typeNodes.Count; i++)
         {
-            var tp = typeNodeList[i];
+            var tp = typeNodes[i];
             if (tp == null) continue;
             if (tp.Interfaces != null && tp.Interfaces.Count > 0 || tp is ClassParameter)
             {
-                typeNodeList[i] = FreshTypeParameterIfNecessary(tp);
+                typeNodes[i] = FreshTypeParameterIfNecessary(tp);
             }
         }
-        return this.VisitTypeParameterList(typeNodeList);
+        return this.VisitTypeParameterList(typeNodes);
     }
 
     private TypeNode FreshTypeParameterIfNecessary(TypeNode typeParameter)
@@ -256,7 +258,7 @@ namespace System.Compiler{
             }
             return CopyTypeParameter(cp);
         }
-        InterfaceList interfaces = typeParameter.Interfaces;
+        List<Interface> interfaces = typeParameter.Interfaces;
         if (interfaces == null || interfaces.Count == 0) return typeParameter;
         TypeNode baseType = this.VisitTypeReference(interfaces[0]);
         if (baseType is Interface)
@@ -270,7 +272,7 @@ namespace System.Compiler{
     private TypeNode CopyTypeParameter(TypeNode typeParameter)
     {
         var fresh = (TypeNode)typeParameter.Clone();
-        fresh.Interfaces = fresh.Interfaces.Clone();
+        fresh.Interfaces = fresh.Interfaces.ToList();
         this.forwarding[typeParameter.UniqueKey] = fresh;
         return fresh;
     }
@@ -301,8 +303,8 @@ namespace System.Compiler{
         result.DeclaringMember = ((ITypeParameter)typeParameter).DeclaringMember;
         result.DeclaringModule = typeParameter.DeclaringModule;
         result.Flags = typeParameter.Flags & ~TypeFlags.Interface;
-        InterfaceList constraints = result.Interfaces = new InterfaceList();
-        InterfaceList interfaces = typeParameter.Interfaces;
+        List<Interface> constraints = result.Interfaces = new List<Interface>();
+        List<Interface> interfaces = typeParameter.Interfaces;
         for (int i = 1, n = interfaces == null ? 0 : interfaces.Count; i < n; i++)
         {
             //^ assert interfaces != null;
@@ -335,16 +337,16 @@ namespace System.Compiler{
       if (method == null) { Debug.Fail("method == null"); return part; }
       this.CurrentMethod = method;
       this.CurrentType = method.DeclaringType;
-      EnsuresList es = part as EnsuresList;
+      List<Ensures> es = part as List<Ensures>;
       if (es != null) return this.VisitEnsuresList(es);
-      RequiresList rs = part as RequiresList;
+      List<Requires> rs = part as List<Requires>;
       if (rs != null) return this.VisitRequiresList(rs);
       Block initializer = part as Block;
       if (initializer != null) return this.VisitBlock(initializer);
       return part;
     }
 #endif
-    public virtual MethodList VisitMethodList(MethodList methods){
+    public virtual List<Method> VisitMethodList(List<Method> methods){
       if (methods == null) return null;
       int n = methods.Count;
       for (int i = 0; i < n; i++)
@@ -356,7 +358,7 @@ namespace System.Compiler{
       TypeNode savedCurrentType = this.CurrentType;
       if (savedCurrentType != null && savedCurrentType.TemplateArguments != null && savedCurrentType.TemplateArguments.Count > 0 &&
         typeNode.Template != null && (typeNode.Template.TemplateParameters == null || typeNode.Template.TemplateParameters.Count == 0)){
-        typeNode.TemplateArguments = new TypeNodeList(0);
+        typeNode.TemplateArguments = new List<TypeNode>(0);
       }
       this.CurrentType = typeNode;
       if (typeNode.ProvideTypeMembers != null && /*typeNode.ProvideNestedTypes != null &&*/ typeNode.ProviderHandle != null){
@@ -426,7 +428,7 @@ namespace System.Compiler{
       TypeNode savedCurrentType = this.CurrentType;
       this.CurrentType = typeNode;
       sHandler.NestedTypeProvider(typeNode, sHandler.Handle);
-      TypeNodeList nestedTypes = typeNode.nestedTypes;
+      List<TypeNode> nestedTypes = typeNode.nestedTypes;
       for (int i = 0, n = nestedTypes == null ? 0 : nestedTypes.Count; i < n; i++) {
         //^ assert nestedTypes != null;
         TypeNode nt = nestedTypes[i];
@@ -464,8 +466,8 @@ namespace System.Compiler{
       }
     }
     public virtual Expression VisitTypeExpression(Expression expr){
-      TypeNodeList pars = this.pars;
-      TypeNodeList args = this.args;
+      List<TypeNode> pars = this.pars;
+      List<TypeNode> args = this.args;
       Identifier id = expr as Identifier;
       if (id != null){
         int key = id.UniqueIdKey;
@@ -490,8 +492,8 @@ namespace System.Compiler{
     }
     public override TypeNode VisitTypeReference(TypeNode type){ //TODO: break up this method
       if (type == null) return null;
-      TypeNodeList pars = this.pars;
-      TypeNodeList args = this.args;
+      List<TypeNode> pars = this.pars;
+      List<TypeNode> args = this.args;
       switch (type.NodeType){
         case NodeType.ArrayType:
           ArrayType arrType = (ArrayType)type;
@@ -520,9 +522,9 @@ namespace System.Compiler{
         case NodeType.TupleType:{
           TupleType tType = (TupleType)type;
           bool reconstruct = false;
-          MemberList members = tType.Members;
+          List<Member> members = tType.Members;
           int n = members == null ? 0 : members.Count;
-          FieldList fields = new FieldList(n);
+          List<Field> fields = new List<Field>(n);
           for (int i = 0; i < n; i++){
             //^ assert members != null;
             Field f = members[i] as Field;
@@ -543,7 +545,7 @@ namespace System.Compiler{
         case NodeType.TypeUnion:{
           TypeUnion tUnion = (TypeUnion)type;
           TypeNode referringType = tUnion.DeclaringType == null ? this.CurrentType : this.VisitTypeReference(tUnion.DeclaringType);
-          TypeNodeList types = this.VisitTypeReferenceList(tUnion.Types);
+          List<TypeNode> types = this.VisitTypeReferenceList(tUnion.Types);
           if (referringType == null || types == null) { Debug.Fail(""); return null; }
           return TypeUnion.For(types, referringType);}
 #endif
@@ -709,11 +711,11 @@ namespace System.Compiler{
             Debug.Assert(TypeNode.IsCompleteTemplate(type.Template));
             // map consolidated arguments
             bool mustSpecializeFurther = false;
-            TypeNodeList targs = type.ConsolidatedTemplateArguments;
+            List<TypeNode> targs = type.ConsolidatedTemplateArguments;
             int numArgs = targs == null ? 0 : targs.Count;
             if (targs != null)
             {
-              targs = targs.Clone();
+              targs = targs.ToList();
               for (int i = 0; i < numArgs; i++)
               {
                 TypeNode targ = targs[i];
@@ -733,7 +735,7 @@ namespace System.Compiler{
             if (type.Template != null && type.IsGeneric) tname = type.Template.Name;
             TypeNode nt = declaringType.GetNestedType(tname);
             if (nt != null){
-              TypeNodeList arguments = type.TemplateArguments;
+              List<TypeNode> arguments = type.TemplateArguments;
               type = nt;
               if (TargetPlatform.UseGenerics) {
                 if (arguments != null && arguments.Count > 0 && nt.ConsolidatedTemplateParameters != null && nt.ConsolidatedTemplateParameters.Count > 0)
@@ -746,7 +748,7 @@ namespace System.Compiler{
             //Type is a template instance, but some of its arguments were themselves parameters.
             //See if any of these parameters are to be specialized by this specializer.
             bool mustSpecializeFurther = false;
-            TypeNodeList targs = type.TemplateArguments;
+            List<TypeNode> targs = type.TemplateArguments;
             int numArgs = targs == null ? 0 : targs.Count;
             if (targs != null) {
               targs = targs.Clone();
@@ -780,15 +782,15 @@ namespace System.Compiler{
             TypeNode t = type.Template.GetTemplateInstance(this.TargetModule, this.CurrentType, declaringType, targs);
 #if ExtendedRuntime
             if (this.CurrentType != null) {
-              if (this.CurrentType.ReferencedTemplateInstances == null) this.CurrentType.ReferencedTemplateInstances = new TypeNodeList();
+              if (this.CurrentType.ReferencedTemplateInstances == null) this.CurrentType.ReferencedTemplateInstances = new List<TypeNode>();
               this.CurrentType.ReferencedTemplateInstances.Add(t);
             }
 #endif
             return t;
           }
-          TypeNodeList tPars = type.TemplateParameters;
+          List<TypeNode> tPars = type.TemplateParameters;
           if (tPars == null || tPars.Count == 0) return type; //Not a parameterized type. No need to get an instance.
-          TypeNodeList tArgs = new TypeNodeList();
+          List<TypeNode> tArgs = new List<TypeNode>();
           for (int i = 0, n = tPars.Count; i < n; i++) {
             TypeNode tPar = tPars[i];
             tArgs.Add(tPar); //Leave parameter in place if there is no match
@@ -807,7 +809,7 @@ namespace System.Compiler{
           TypeNode ti = type.GetTemplateInstance(this.TargetModule, this.CurrentType, this.VisitTypeReference(type.DeclaringType), tArgs);
 #if ExtendedRuntime
           if (this.CurrentType != null) {
-            if (this.CurrentType.ReferencedTemplateInstances == null) this.CurrentType.ReferencedTemplateInstances = new TypeNodeList();
+            if (this.CurrentType.ReferencedTemplateInstances == null) this.CurrentType.ReferencedTemplateInstances = new List<TypeNode>();
             this.CurrentType.ReferencedTemplateInstances.Add(ti);
           }
 #endif
@@ -822,7 +824,7 @@ namespace System.Compiler{
     public Method methodBeingSpecialized;
     public Method dummyMethod;
 
-    public MethodBodySpecializer(Module module, TypeNodeList pars, TypeNodeList args)
+    public MethodBodySpecializer(Module module, List<TypeNode> pars, List<TypeNode> args)
       : base(module, pars, args){
       //^ base;
     }
@@ -1067,9 +1069,9 @@ namespace System.Compiler{
       if (mb == null) return cons;
       Method meth = mb.BoundMember as Method;
       if (meth == null) return cons;
-      ParameterList parameters = meth.Parameters;
+      var parameters = meth.Parameters;
       if (parameters == null) return cons;
-      ExpressionList operands = cons.Operands;
+      var operands = cons.Operands;
       int n = operands == null ? 0 : operands.Count;
       if (n > parameters.Count) n = parameters.Count;
       for (int i = 0; i < n; i++){
@@ -1091,9 +1093,9 @@ namespace System.Compiler{
       if (mb == null) return call;
       Method meth = mb.BoundMember as Method;
       if (meth == null) return call;
-      ParameterList parameters = meth.Parameters;
+      List<Parameter> parameters = meth.Parameters;
       if (parameters == null) return call;
-      ExpressionList operands = call.Operands;
+      List<Expression> operands = call.Operands;
       int n = operands == null ? 0 : operands.Count;
       if (n > parameters.Count) n = parameters.Count;
       for (int i = 0; i < n; i++){
@@ -1124,7 +1126,7 @@ namespace System.Compiler{
       if (typeNode == null) return null;
       TypeNode savedCurrentType = this.CurrentType;
       this.CurrentType = typeNode;
-      MemberList members = typeNode.Members;
+      List<Member> members = typeNode.Members;
       for (int i = 0, n = members == null ? 0 : members.Count; i < n; i++){
         //^ assert members != null;
         Member mem = members[i];

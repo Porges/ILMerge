@@ -1,18 +1,19 @@
 using System;
 using System.CodeDom.Compiler;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 #if FxCop
-using AttributeList = Microsoft.Cci.AttributeNodeCollection;
-using BlockList = Microsoft.Cci.BlockCollection;
-using ExpressionList = Microsoft.Cci.ExpressionCollection;
-using InterfaceList = Microsoft.Cci.InterfaceCollection;
-using MemberList = Microsoft.Cci.MemberCollection;
-using NodeList = Microsoft.Cci.NodeCollection;
-using ParameterList = Microsoft.Cci.ParameterCollection;
-using SecurityAttributeList = Microsoft.Cci.SecurityAttributeCollection;
-using StatementList = Microsoft.Cci.StatementCollection;
-using TypeNodeList = Microsoft.Cci.TypeNodeCollection;
+using List<AttributeNode> = Microsoft.Cci.AttributeNodeCollection;
+using List<Block> = Microsoft.Cci.BlockCollection;
+using List<Expression> = Microsoft.Cci.ExpressionCollection;
+using List<Interface> = Microsoft.Cci.InterfaceCollection;
+using List<Member> = Microsoft.Cci.MemberCollection;
+using List<Node> = Microsoft.Cci.NodeCollection;
+using List<Parameter> = Microsoft.Cci.ParameterCollection;
+using List<SecurityAttribute> = Microsoft.Cci.SecurityAttributeCollection;
+using List<Statement> = Microsoft.Cci.StatementCollection;
+using List<TypeNode> = Microsoft.Cci.TypeNodeCollection;
 using Property = Microsoft.Cci.PropertyNode;
 using Module = Microsoft.Cci.ModuleNode;
 using Return = Microsoft.Cci.ReturnNode;
@@ -47,7 +48,7 @@ namespace System.Compiler{
     public virtual void TransferStateTo(Visitor targetVisitor){
     }
 #endif
-    public virtual ExpressionList VisitExpressionList(ExpressionList list){
+    public virtual List<Expression> VisitExpressionList(List<Expression> list){
       if (list == null) return null;
       for( int i = 0, n = list.Count; i < n; i++)
         list[i] = (Expression)this.Visit(list[i]);
@@ -744,7 +745,7 @@ namespace System.Compiler{
       attribute.Expressions = this.VisitExpressionList(attribute.Expressions);
       return attribute;
     }
-    public virtual AttributeList VisitAttributeList(AttributeList attributes){
+    public virtual List<AttributeNode> VisitAttributeList(List<AttributeNode> attributes){
       if (attributes == null) return null;
       for (int i = 0, n = attributes.Count; i < n; i++)
         attributes[i] = this.VisitAttributeNode(attributes[i]);
@@ -773,7 +774,7 @@ namespace System.Compiler{
       return blockExpression;
     }
 #endif
-    public virtual BlockList VisitBlockList(BlockList blockList){
+    public virtual List<Block> VisitBlockList(List<Block> blockList){
       if (blockList == null) return null;
       for (int i = 0, n = blockList.Count; i < n; i++)
         blockList[i] = this.VisitBlock(blockList[i]);
@@ -829,7 +830,7 @@ namespace System.Compiler{
       cUnit.Nodes = this.VisitNodeList(cUnit.Nodes);
       return cUnit;
     }    
-    public virtual NodeList VisitNodeList(NodeList nodes){
+    public virtual List<Node> VisitNodeList(List<Node> nodes){
       if (nodes == null) return null;
       for (int i = 0, n = nodes.Count; i < n; i++)
         nodes[i] = this.Visit(nodes[i]);
@@ -937,7 +938,7 @@ namespace System.Compiler{
       return endFinally;
     }
 #if ExtendedRuntime || CodeContracts
-    public virtual EnsuresList VisitEnsuresList(EnsuresList Ensures) {
+    public virtual List<Ensures> VisitEnsuresList(List<Ensures> Ensures) {
       if (Ensures == null) return null;
       for (int i = 0, n = Ensures.Count; i < n; i++)
         Ensures[i] = (Ensures) this.Visit(Ensures[i]);
@@ -992,7 +993,7 @@ namespace System.Compiler{
           return (Expression)this.Visit(expression);
       }
     }
-    public override ExpressionList VisitExpressionList(ExpressionList expressions){
+    public override List<Expression> VisitExpressionList(List<Expression> expressions){
       if (expressions == null) return null;
       for (int i = 0, n = expressions.Count; i < n; i++)
         expressions[i] = this.VisitExpression(expressions[i]);
@@ -1014,7 +1015,7 @@ namespace System.Compiler{
       faultHandler.Block = this.VisitBlock(faultHandler.Block);
       return faultHandler;
     }
-    public virtual FaultHandlerList VisitFaultHandlerList(FaultHandlerList faultHandlers){
+    public virtual List<FaultHandler> VisitFaultHandlerList(List<FaultHandler> faultHandlers){
       if (faultHandlers == null) return null;
       for (int i = 0, n = faultHandlers.Count; i < n; i++)
         faultHandlers[i] = (FaultHandler)this.VisitFaultHandler(faultHandlers[i]);
@@ -1037,7 +1038,7 @@ namespace System.Compiler{
       block.Type = this.VisitTypeReference(block.Type);
       return this.VisitBlock(block);
     }
-    public virtual FieldList VisitFieldList(FieldList fields){
+    public virtual List<Field> VisitFieldList(List<Field> fields){
       if (fields == null) return null;
       for (int i = 0, n = fields.Count; i < n; i++)
         fields[i] = this.VisitField(fields[i]);
@@ -1140,7 +1141,7 @@ namespace System.Compiler{
     public virtual Interface VisitInterfaceReference(Interface Interface){
       return (Interface)this.VisitTypeReference(Interface);
     }
-    public virtual InterfaceList VisitInterfaceReferenceList(InterfaceList interfaceReferences){
+    public virtual List<Interface> VisitInterfaceReferenceList(List<Interface> interfaceReferences){
       if (interfaceReferences == null) return null;
       for (int i = 0, n = interfaceReferences.Count; i < n; i++)
         interfaceReferences[i] = this.VisitInterfaceReference(interfaceReferences[i]);
@@ -1152,7 +1153,7 @@ namespace System.Compiler{
       @invariant.Condition = VisitExpression(@invariant.Condition);
       return @invariant;
     }
-    public virtual InvariantList VisitInvariantList(InvariantList invariants){
+    public virtual List<Invariant> VisitInvariantList(List<Invariant> invariants){
       if (invariants == null) return null;
       for (int i = 0, n = invariants.Count; i < n; i++)
         invariants[i] = this.VisitInvariant(invariants[i]);
@@ -1235,7 +1236,7 @@ namespace System.Compiler{
       memberBinding.TargetObject = this.VisitExpression(memberBinding.TargetObject);
       return memberBinding;
     }
-    public virtual MemberList VisitMemberList(MemberList members){
+    public virtual List<Member> VisitMemberList(List<Member> members){
       this.memberListNamesChanged = false;
       if (members == null) return null;
       for (int i = 0, n = members.Count; i < n; i++) {
@@ -1332,7 +1333,7 @@ namespace System.Compiler{
       nspace.NestedNamespaces = this.VisitNamespaceList(nspace.NestedNamespaces);
       return nspace;
     }
-    public virtual NamespaceList VisitNamespaceList(NamespaceList namespaces){
+    public virtual List<Namespace> VisitNamespaceList(List<Namespace> namespaces){
       if (namespaces == null) return null;
       for (int i = 0, n = namespaces.Count; i < n; i++)
         namespaces[i] = this.VisitNamespace(namespaces[i]);
@@ -1387,7 +1388,7 @@ namespace System.Compiler{
 #endif
       return parameter;
     }
-    public virtual ParameterList VisitParameterList(ParameterList parameterList){
+    public virtual List<Parameter> VisitParameterList(List<Parameter> parameterList){
       if (parameterList == null) return null;
       for (int i = 0, n = parameterList.Count; i < n; i++)
         parameterList[i] = (Parameter)this.VisitParameter(parameterList[i]);
@@ -1456,7 +1457,7 @@ namespace System.Compiler{
     }
 #endif
 #if ExtendedRuntime || CodeContracts
-    public virtual RequiresList VisitRequiresList(RequiresList Requires) {
+    public virtual List<Requires> VisitRequiresList(List<Requires> Requires) {
       if (Requires == null) return null;
       for (int i = 0, n = Requires.Count; i < n; i++)
         Requires[i] = (Requires) this.Visit(Requires[i]);
@@ -1487,7 +1488,7 @@ namespace System.Compiler{
     public virtual SecurityAttribute VisitSecurityAttribute(SecurityAttribute attribute){
       return attribute;
     }
-    public virtual SecurityAttributeList VisitSecurityAttributeList(SecurityAttributeList attributes){
+    public virtual List<SecurityAttribute> VisitSecurityAttributeList(List<SecurityAttribute> attributes){
       if (attributes == null) return null;
       for (int i = 0, n = attributes.Count; i < n; i++)
         attributes[i] = this.VisitSecurityAttribute(attributes[i]);
@@ -1498,7 +1499,7 @@ namespace System.Compiler{
       return value;
     }
 #endif
-    public virtual StatementList VisitStatementList(StatementList statements){
+    public virtual List<Statement> VisitStatementList(List<Statement> statements){
       if (statements == null) return null;
       for (int i = 0, n = statements.Count; i < n; i++)
         statements[i] = (Statement)this.Visit(statements[i]);
@@ -1661,7 +1662,7 @@ namespace System.Compiler{
 #endif
       return typeNode;
     }
-    public virtual TypeNodeList VisitTypeNodeList(TypeNodeList types){
+    public virtual List<TypeNode> VisitTypeNodeList(List<TypeNode> types){
       if (types == null) return null;
       for (int i = 0; i < types.Count; i++) //Visiting a type may result in a new type being appended to this list
         types[i] = (TypeNode)this.Visit(types[i]);
@@ -1675,7 +1676,7 @@ namespace System.Compiler{
       typeParameter.Interfaces = this.VisitInterfaceReferenceList(typeParameter.Interfaces);
       return typeParameter;
     }
-    public virtual TypeNodeList VisitTypeParameterList(TypeNodeList typeParameters){
+    public virtual List<TypeNode> VisitTypeParameterList(List<TypeNode> typeParameters){
       if (typeParameters == null) return null;
       for (int i = 0, n = typeParameters.Count; i < n; i++)
         typeParameters[i] = this.VisitTypeParameter(typeParameters[i]);
@@ -1689,7 +1690,7 @@ namespace System.Compiler{
       return type;
     }
 #endif
-    public virtual TypeNodeList VisitTypeReferenceList(TypeNodeList typeReferences){
+    public virtual List<TypeNode> VisitTypeReferenceList(List<TypeNode> typeReferences){
       if (typeReferences == null) return null;
       for (int i = 0, n = typeReferences.Count; i < n; i++)
         typeReferences[i] = this.VisitTypeReference(typeReferences[i]);
@@ -1721,7 +1722,7 @@ namespace System.Compiler{
         usedNspaces[i] = this.VisitUsedNamespace(usedNspaces[i]);
       return usedNspaces;
     }
-    public virtual ExpressionList VisitLoopInvariantList(ExpressionList expressions){
+    public virtual List<Expression> VisitLoopInvariantList(List<Expression> expressions){
       if (expressions == null) return null;
       for (int i = 0, n = expressions.Count; i < n; i++)
         expressions[i] = this.VisitExpression(expressions[i]);
@@ -1942,7 +1943,7 @@ namespace System.Compiler{
     /// <param name="compilationUnit">The compilation unit whose Nodes list will receive the AST root node(s) that the parser produces.</param>
     void ParseCompilationUnit(CompilationUnit compilationUnit);
     Expression ParseExpression();
-    void ParseStatements(StatementList statements);
+    void ParseStatements(List<Statement> statements);
     void ParseTypeMembers(TypeNode type);
   }
   ///<summary>Provides a way for general purpose code to construct parsers using an standard interface. 
@@ -1954,7 +1955,7 @@ namespace System.Compiler{
     public IParserFactory/*!*/ DefaultParserFactory;
     public ErrorNodeList ErrorNodes;
     public Module SymbolTable;
-    public StatementList CurrentStatementList;
+    public List<Statement> CurrentStatementList;
     public CompilerParameters Options;
 
     public SnippetParser(IParserFactory/*!*/ defaultParserFactory, Module symbolTable, ErrorNodeList errorNodes, CompilerParameters options) {
@@ -1962,7 +1963,7 @@ namespace System.Compiler{
       this.ErrorNodes = errorNodes;
       this.SymbolTable = symbolTable;
       this.Options = options;
-      this.CurrentStatementList = new StatementList(0);
+      this.CurrentStatementList = new List<Statement>(0);
       //^ base();
     }
 
@@ -1971,11 +1972,11 @@ namespace System.Compiler{
     }
     public override Block VisitBlock(Block block){
       if (block == null) return null;
-      StatementList savedStatementList = this.CurrentStatementList;
+      List<Statement> savedStatementList = this.CurrentStatementList;
       try{
-        StatementList oldStatements = block.Statements;
+        List<Statement> oldStatements = block.Statements;
         int n = oldStatements == null ? 0 : oldStatements.Count;
-        StatementList newStatements = this.CurrentStatementList = block.Statements = new StatementList(n);
+        List<Statement> newStatements = this.CurrentStatementList = block.Statements = new List<Statement>(n);
         for (int i = 0; i < n; i++) {
           //^ assert oldStatements != null;
           newStatements.Add((Statement)this.Visit(oldStatements[i]));

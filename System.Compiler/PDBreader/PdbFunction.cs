@@ -34,7 +34,7 @@ namespace Microsoft.Cci.Pdb
     internal string[] usedNamespaces;
     internal PdbLines[] lines;
     internal ushort[]/*?*/ usingCounts;
-    //internal IEnumerable<NamespaceList>/*?*/ namespaceScopes;
+    //internal IEnumerable<List<Namespace>>/*?*/ namespaceScopes;
     internal string/*?*/ iteratorClass;
     internal List<ILocalScope>/*?*/ iteratorScopes;
     internal PdbSynchronizationInformation/*?*/ synchronizationInformation;
